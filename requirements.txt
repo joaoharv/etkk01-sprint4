@@ -1,0 +1,18 @@
+# Dependencias da camada ETL (src/) e dos testes.
+#
+# Sem versoes fixas de proposito: a imagem Docker do Airflow instala esta lista
+# com o constraint oficial do Airflow 2.9.3 / Python 3.11, que ja resolve as
+# versoes compativeis (pandas 2.1.4, openpyxl 3.1.5, SQLAlchemy 1.4.52,
+# psycopg2-binary 2.9.9, etc). Fixar aqui so criaria conflito com esse constraint.
+#
+# Uso local (fora do Docker):
+#   pip install -r requirements.txt \
+#     -c https://raw.githubusercontent.com/apache/airflow/constraints-2.9.3/constraints-3.11.txt
+
+pandas
+openpyxl
+SQLAlchemy
+psycopg2-binary
+
+# Testes de integracao (Fase 9)
+pytest

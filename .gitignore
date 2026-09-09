@@ -1,0 +1,33 @@
+# ----- Ambiente / segredos -----
+.env
+*.env
+!.env.example
+
+# ----- Python -----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# ----- Airflow (runtime local) -----
+logs/
+airflow.db
+airflow.cfg
+standalone_admin_password.txt
+
+# ----- Docker -----
+# volumes nomeados ficam no Docker; nada de bind local aqui
+
+# ----- IDE / SO -----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ----- Saidas de analise -----
+*.log
+output/

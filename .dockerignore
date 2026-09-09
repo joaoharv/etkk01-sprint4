@@ -1,0 +1,20 @@
+# Contexto de build da imagem do Airflow = raiz do repo, mas o Dockerfile
+# so precisa do requirements.txt. Tudo abaixo fica fora do contexto.
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+data/
+grafana/
+sql/
+tests/
+dags/
+src/
+config/
+docker/
+*.md
+.env
+.env.example
+EDA.py
