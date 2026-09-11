@@ -1,0 +1,350 @@
+{
+  "uid": "analises-operacionais",
+  "title": "05 · Análises Operacionais",
+  "tags": [
+    "sprint4",
+    "locaweb",
+    "operacional"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "style": "dark",
+  "refresh": "",
+  "time": {
+    "from": "2023-01-01T00:00:00.000Z",
+    "to": "2026-01-01T00:00:00.000Z"
+  },
+  "timepicker": {},
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 30,
+      "type": "row",
+      "title": "Recortes operacionais",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 31,
+      "type": "barchart",
+      "title": "Incidentes por grupo designado",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT grupo_designado, sum(total_incidentes) AS total FROM gold.incidentes_diario_grupo_full WHERE $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 2 DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 85
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#DF490A"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "xTickLabelRotation": 0,
+        "legend": {
+          "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 32,
+      "type": "barchart",
+      "title": "Top 15 categorias",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 16,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT categoria, sum(total_incidentes) AS total FROM gold.incidentes_diario_categoria WHERE $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 85
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#DF490A"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "xTickLabelRotation": 0,
+        "legend": {
+          "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 33,
+      "type": "piechart",
+      "title": "Origem: Monitoramento vs Manual",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 10,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT aberto_por, sum(total_incidentes) AS total FROM gold.incidentes_diario_aberto_por WHERE $__timeFilter(data_abertura) GROUP BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Monitoramento"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#DF490A"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Manual"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#EB6A7C"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "list",
+          "placement": "right"
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 34,
+      "type": "table",
+      "title": "Volume e participação por grupo",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT grupo_designado AS \"Grupo\", sum(total_incidentes) AS \"Total\", round(100.0*sum(total_incidentes)/sum(sum(total_incidentes)) OVER (),1) AS \"% do total\" FROM gold.incidentes_diario_grupo_full WHERE $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 2 DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 35,
+      "type": "barchart",
+      "title": "Incidentes por código de fechamento",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 19,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT codigo_fechamento, sum(total_incidentes) AS total FROM gold.incidentes_diario_codigo_fechamento WHERE $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 2 DESC LIMIT 12"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 85
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#EB6A7C"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#EB6A7C",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "showValue": "auto",
+        "stacking": "none",
+        "xTickLabelRotation": -45,
+        "legend": {
+          "showLegend": false
+        }
+      }
+    }
+  ]
+}

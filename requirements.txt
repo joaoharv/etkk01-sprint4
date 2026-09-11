@@ -13,6 +13,7 @@ pandas
 openpyxl
 SQLAlchemy
 psycopg2-binary
+python-dotenv          # carrega o .env quando o ETL roda fora dos containers
 
 # Testes de integracao (Fase 9)
 pytest

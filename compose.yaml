@@ -1,0 +1,8 @@
+# Ponto de entrada na raiz do repo: permite rodar `docker compose up -d`
+# direto daqui, sem precisar de `-f docker/docker-compose.yml` nem `--env-file`.
+# O compose real fica em docker/docker-compose.yml (incluido abaixo); o .env da
+# raiz e carregado automaticamente por estar no diretorio do projeto.
+name: sprint4-incidentes-ti
+
+include:
+  - docker/docker-compose.yml

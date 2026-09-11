@@ -22,7 +22,9 @@ import pandas as pd
 # CONFIGURAÇÃO
 # ============================================================
 
-ARQUIVO = Path("LW-DATASET.xlsx")
+# Artefato das sprints 1/2 — analise exploratoria isolada, fora do pipeline.
+# O caminho e resolvido a partir da raiz do repo (este arquivo esta em notebooks/).
+ARQUIVO = Path(__file__).resolve().parent.parent / "data" / "LW-DATASET.xlsx"
 ABA = 0  # Primeira aba. Altere para o nome da aba se necessário.
 
 

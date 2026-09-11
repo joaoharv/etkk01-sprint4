@@ -1,0 +1,27 @@
+# Datasource provisionado automaticamente na subida do Grafana.
+# Credenciais vem das variaveis de ambiente injetadas pelo docker-compose
+# (POSTGRES_HOST ja inclui a porta: "postgres:5432"). Nenhum valor literal aqui.
+apiVersion: 1
+
+datasources:
+  - name: incidentes_ti
+    uid: incidentes_ti
+    type: postgres
+    access: proxy
+    url: ${POSTGRES_HOST}
+    user: ${POSTGRES_USER}
+    isDefault: true
+    editable: false
+    jsonData:
+      database: ${POSTGRES_DB}
+      sslmode: disable
+      postgresVersion: 1500
+      timescaledb: false
+    # As consultas dos dashboards qualificam as tabelas com o schema (gold.<tabela>).
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+
+# Remove o datasource se o arquivo for apagado, evitando orfaos.
+deleteDatasources:
+  - name: incidentes_ti
+    orgId: 1
