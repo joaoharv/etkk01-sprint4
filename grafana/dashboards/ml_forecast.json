@@ -1,0 +1,981 @@
+{
+  "uid": "ml-forecast",
+  "title": "06 · Machine Learning / Forecast",
+  "tags": [
+    "sprint4",
+    "locaweb",
+    "ml",
+    "forecast"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "style": "dark",
+  "refresh": "",
+  "time": {
+    "from": "2025-11-01T00:00:00.000Z",
+    "to": "2026-01-10T00:00:00.000Z"
+  },
+  "timepicker": {},
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Seção A — Previsão de Volume (D+1 Persistência / D+7 Ridge)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Previsão D+1 (Persistência)",
+      "description": "volume_total(t) copiado para t+1 -- nao e' modelo treinado (Secao 16 do notebook).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT valor_previsto FROM gold.previsoes WHERE serie = 'total' AND horizonte = 'D+1' ORDER BY data_referencia DESC LIMIT 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B8C0C8"
+          },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#B8C0C8",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Previsão D+7 (Ridge)",
+      "description": "Modelo Ridge (alpha=0.001), features lag_1..lag_28 + periodo_pos_set_2025 -- retreinado em TRAIN+VAL (Secao 21 do notebook).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT valor_previsto FROM gold.previsoes WHERE serie = 'total' AND horizonte = 'D+7' ORDER BY data_referencia DESC LIMIT 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#DF490A"
+          },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Modelo ativo",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 12,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT CASE horizonte WHEN 'D+1' THEN 'D+1 (Persistência)' WHEN 'D+7' THEN 'D+7 (Ridge)' END AS \"Horizonte\", modelo_utilizado AS \"Modelo\", versao_modelo AS \"Versão\", gerado_em AS \"Gerado em\" FROM (SELECT DISTINCT ON (horizonte) horizonte, modelo_utilizado, versao_modelo, gerado_em FROM gold.previsoes WHERE serie = 'total' ORDER BY horizonte, data_referencia DESC) t ORDER BY \"Horizonte\""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Real × Previsto (histórico avaliado)",
+      "description": "LEFT JOIN por data_alvo -- previsao futura sem valor real ainda aparece como 'aguardando real', nunca some da tabela.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 16,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT CASE p.horizonte WHEN 'D+1' THEN 'D+1 (Persistência)' WHEN 'D+7' THEN 'D+7 (Ridge)' END AS \"Horizonte\", p.data_referencia AS \"Data de referência\", p.data_alvo AS \"Data alvo\", p.valor_previsto AS \"Previsto\", g.volume_total AS \"Real\", CASE WHEN g.volume_total IS NULL THEN NULL ELSE round(abs(p.valor_previsto - g.volume_total)::numeric, 1) END AS \"Erro absoluto\" FROM gold.previsoes p LEFT JOIN gold.ml_volume_diario g ON g.data_abertura = p.data_alvo WHERE p.serie = 'total' AND $__timeFilter(p.data_alvo) ORDER BY p.horizonte, p.data_alvo"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Real"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null",
+                      "result": {
+                        "text": "aguardando real"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Erro absoluto"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null",
+                      "result": {
+                        "text": "aguardando real"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "MAE / RMSE por horizonte",
+      "description": "Calculado SOMENTE sobre dias com valor real conhecido (JOIN, nao LEFT JOIN) -- a linha forward nunca entra nessa media.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 5,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT CASE p.horizonte WHEN 'D+1' THEN 'D+1 (Persistência)' WHEN 'D+7' THEN 'D+7 (Ridge)' END AS \"Horizonte\", round(avg(abs(p.valor_previsto - g.volume_total))::numeric, 2) AS \"MAE\", round(sqrt(avg(power(p.valor_previsto - g.volume_total, 2)))::numeric, 2) AS \"RMSE\", count(*) AS \"Dias avaliados\" FROM gold.previsoes p JOIN gold.ml_volume_diario g ON g.data_abertura = p.data_alvo WHERE p.serie = 'total' GROUP BY p.horizonte ORDER BY \"Horizonte\""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "D+7 — Real × Previsto ao longo do tempo",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT p.data_alvo AS time, 'Previsto (D+7)' AS metric, p.valor_previsto AS value FROM gold.previsoes p WHERE p.serie = 'total' AND p.horizonte = 'D+7' AND $__timeFilter(p.data_alvo) UNION ALL SELECT g.data_abertura AS time, 'Real' AS metric, g.volume_total AS value FROM gold.ml_volume_diario g WHERE $__timeFilter(g.data_abertura) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "always",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Real"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B8C0C8"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 3
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Previsto (D+7)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#DF490A"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Seção B — Classificação de Prioridade (Piloto Assistido)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "text",
+      "title": "",
+      "datasource": null,
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 24,
+        "h": 3
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**Piloto assistido — não é decisão automática.** Este painel classifica retrospectivamente um histórico estático (a fonte não recebe incidentes novos em tempo real) -- não é um forecast. O notebook original classifica este pipeline como **Experimental** (não \"Recomendado\"): o desempenho cai de VAL para TEST por drift documentado. Uso indicado: apoio à triagem humana, que confirma ou corrige -- nunca substituição do julgamento humano."
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "F1-Macro (OOS: VAL+TEST)",
+      "description": "Calculado exclusivamente sobre gold.previsoes_prioridade, que so contem VAL+TEST -- TRAIN nunca entra aqui (ver src/ml/predict_prioridade.py).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH base AS (SELECT prioridade_real, prioridade_prevista FROM gold.previsoes_prioridade), por_classe AS (SELECT classe, (SELECT COUNT(*) FROM base WHERE prioridade_real = classe AND prioridade_prevista = classe) AS tp, (SELECT COUNT(*) FROM base WHERE prioridade_real = classe) AS total_real, (SELECT COUNT(*) FROM base WHERE prioridade_prevista = classe) AS total_prev FROM (VALUES ('2 - Alta'), ('3 - Média'), ('4 - Baixa')) AS c(classe)) SELECT round(avg(CASE WHEN (tp::numeric/NULLIF(total_real,0) + tp::numeric/NULLIF(total_prev,0)) = 0 THEN 0 ELSE 2 * (tp::numeric/NULLIF(total_real,0)) * (tp::numeric/NULLIF(total_prev,0)) / (tp::numeric/NULLIF(total_real,0) + tp::numeric/NULLIF(total_prev,0)) END)::numeric, 3) AS f1_macro FROM por_classe"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#EB6A7C"
+          },
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#EB6A7C",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Recall P2 (2 - Alta)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 26,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT round(COUNT(*) FILTER (WHERE prioridade_prevista = '2 - Alta')::numeric / NULLIF(COUNT(*),0), 3) AS recall_p2 FROM gold.previsoes_prioridade WHERE prioridade_real = '2 - Alta'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#EB6A7C"
+          },
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#EB6A7C",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Recall P3 (3 - Média)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT round(COUNT(*) FILTER (WHERE prioridade_prevista = '3 - Média')::numeric / NULLIF(COUNT(*),0), 3) AS recall_p3 FROM gold.previsoes_prioridade WHERE prioridade_real = '3 - Média'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#EB6A7C"
+          },
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#EB6A7C",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Recall P4 (4 - Baixa)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 26,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT round(COUNT(*) FILTER (WHERE prioridade_prevista = '4 - Baixa')::numeric / NULLIF(COUNT(*),0), 3) AS recall_p4 FROM gold.previsoes_prioridade WHERE prioridade_real = '4 - Baixa'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#EB6A7C"
+          },
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#EB6A7C",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Modelo ativo",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 12,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT modelo_utilizado AS \"Modelo\", versao_modelo AS \"Versão\", MAX(gerado_em) AS \"Gerado em\", COUNT(*) AS \"Incidentes classificados (OOS)\" FROM gold.previsoes_prioridade GROUP BY modelo_utilizado, versao_modelo"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Score do modelo (não é probabilidade)",
+      "description": "score_vencedor vem de LinearSVC.decision_function() -- e' uma margem de decisao, nunca uma probabilidade calibrada.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 30,
+        "w": 12,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT prioridade_prevista AS \"Classe prevista\", round(avg(score_vencedor)::numeric, 2) AS \"Score médio (margem, não é probabilidade)\", round(min(score_vencedor)::numeric, 2) AS \"Score mín.\", round(max(score_vencedor)::numeric, 2) AS \"Score máx.\" FROM gold.previsoes_prioridade GROUP BY prioridade_prevista ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": "barchart",
+      "title": "Distribuição Real × Previsto",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT classe AS \"Classe\", COALESCE(r.total, 0) AS \"Real\", COALESCE(p.total, 0) AS \"Previsto\" FROM (VALUES ('2 - Alta'), ('3 - Média'), ('4 - Baixa')) AS c(classe) LEFT JOIN (SELECT prioridade_real AS classe, COUNT(*) AS total FROM gold.previsoes_prioridade GROUP BY 1) r USING (classe) LEFT JOIN (SELECT prioridade_prevista AS classe, COUNT(*) AS total FROM gold.previsoes_prioridade GROUP BY 1) p USING (classe) ORDER BY classe"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Real"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#B8C0C8"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Previsto"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#EB6A7C"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "groupWidth": 0.7,
+        "barWidth": 0.8,
+        "showValue": "auto",
+        "stacking": "none"
+      }
+    },
+    {
+      "id": 17,
+      "type": "table",
+      "title": "Matriz de confusão (linhas = real, colunas = previsto)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 35,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT prioridade_real AS \"Real \\ Previsto\", COUNT(*) FILTER (WHERE prioridade_prevista = '2 - Alta') AS \"2 - Alta\", COUNT(*) FILTER (WHERE prioridade_prevista = '3 - Média') AS \"3 - Média\", COUNT(*) FILTER (WHERE prioridade_prevista = '4 - Baixa') AS \"4 - Baixa\" FROM gold.previsoes_prioridade GROUP BY prioridade_real ORDER BY prioridade_real"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    }
+  ]
+}

@@ -12,11 +12,6 @@ from config.logging import get_logger
 
 log = get_logger(__name__)
 
-_PREVISOES_COLS = [
-    "data_referencia", "serie", "horizonte",
-    "valor_previsto", "modelo_utilizado", "gerado_em",
-]
-
 
 def _por_dia(df: pd.DataFrame, dimensao: str | None = None) -> pd.DataFrame:
     chaves = ["data_abertura"] + ([dimensao] if dimensao else [])
@@ -54,7 +49,14 @@ def _kpi_resumo(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_gold(df_silver: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    """Recebe a Silver e devolve {nome_tabela_gold: DataFrame}."""
+    """Recebe a Silver e devolve {nome_tabela_gold: DataFrame}.
+
+    NAO inclui ``previsoes`` nem ``previsoes_prioridade`` -- essas tabelas sao
+    propriedade exclusiva do pipeline de ML (src/ml/predict_volume.py,
+    src/load/load_previsoes.py), que faz UPSERT e nunca TRUNCATE. Incluir um
+    stub vazio aqui fazia load_gold() truncar gold.previsoes a cada execucao
+    do ETL principal, apagando as previsoes reais (bug encontrado e corrigido
+    na Etapa 8 -- ver relatorio)."""
     df = df_silver.copy()
     df["data_abertura"] = pd.to_datetime(df["data_abertura"]).dt.date
     df["kpi_violado"] = df["kpi_violado"].astype("boolean")
@@ -82,7 +84,6 @@ def build_gold(df_silver: pd.DataFrame) -> dict[str, pd.DataFrame]:
             df.groupby(["hora", "dia_semana"])
             .size().reset_index(name="total_incidentes")
         ),
-        "previsoes": pd.DataFrame(columns=_PREVISOES_COLS),
     }
 
     total_gold = int(tabelas["incidentes_diario_total"]["total_incidentes"].sum())

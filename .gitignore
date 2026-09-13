@@ -35,3 +35,9 @@ docs/
 
 # ----- Claude Code (skills locais, nao fazem parte do produto) -----
 /.claude/skills/
+
+# ----- Model Registry (Plano 2.1) -----
+# .pkl e binario, gerado por src/ml/train_*.py, atado a versao de sklearn/numpy do
+# container -- nao versionado. current.json/metadata.json sao a trilha de auditoria
+# (pequenos, texto) e continuam versionados normalmente.
+/models/**/*.pkl

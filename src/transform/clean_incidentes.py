@@ -19,7 +19,7 @@ _COLS_DATA = ["aberto", "resolvido", "encerrado"]
 # Colunas da silver.incidentes_tratados, na ordem do schema.
 COLUNAS_SILVER = [
     "numero", "prioridade", "produto", "categoria", "subcategoria",
-    "grupo_designado", "item_configuracao", "codigo_fechamento",
+    "grupo_designado", "item_configuracao", "descricao_resumida", "codigo_fechamento",
     "aberto", "resolvido", "foi_resolvido", "encerrado",
     "duracao_segundos", "duracao_valida", "aberto_por", "status",
     "entrou_kpi", "kpi_violado", "data_abertura", "ano", "mes", "dia_semana",

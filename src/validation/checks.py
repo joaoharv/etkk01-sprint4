@@ -69,19 +69,12 @@ def check_gold_vs_silver() -> Checagem:
     return gold == silver, f"gold_total={gold} | silver={silver}"
 
 
-def check_previsoes_vazia() -> Checagem:
-    """gold.previsoes esta vazia (ML fora do escopo desta entrega)."""
-    n = _scalar("SELECT COUNT(*) FROM gold.previsoes")
-    return n == 0, f"gold.previsoes: {n} linhas (esperado 0)"
-
-
 CHECAGENS = (
     check_bronze_count,
     check_silver_no_nulls,
     check_silver_no_dup,
     check_silver_vs_bronze,
     check_gold_vs_silver,
-    check_previsoes_vazia,
 )
 
 

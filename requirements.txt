@@ -15,5 +15,12 @@ SQLAlchemy
 psycopg2-binary
 python-dotenv          # carrega o .env quando o ETL roda fora dos containers
 
+# ML (Plano 2.1) — nao fixadas de proposito, mesmo racional do resto do arquivo.
+# O constraint do Airflow 2.9.3/Python 3.11 fixa numpy==1.26.4, mas nao pina
+# scikit-learn/scipy/joblib (o Airflow nao depende deles) — pip resolve a
+# versao mais recente compativel com esse numpy sozinho.
+scikit-learn
+joblib
+
 # Testes de integracao (Fase 9)
 pytest

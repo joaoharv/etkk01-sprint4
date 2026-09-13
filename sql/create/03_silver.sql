@@ -5,6 +5,12 @@
 -- Desvio consciente em relacao a Parte 6 do plano: incluida a coluna
 -- codigo_fechamento — necessaria para a tabela gold.incidentes_diario_codigo_fechamento
 -- e para o Dashboard 3 (KPIs/SLA). Segue o mesmo padrao de nulo -> 'Não informado'.
+--
+-- Desvio consciente (Plano 2.1, Etapa 4): incluida a coluna descricao_resumida —
+-- unica fonte de texto do modelo de classificacao de Prioridade (TF-IDF). Passthrough
+-- puro: sem default, sem regra de qualidade, sem tratamento de nulo (fillna pertence
+-- ao feature engineering do ML, nao a Silver — ver src/ml/features/prioridade_features.py,
+-- Etapa 11).
 
 CREATE TABLE IF NOT EXISTS silver.incidentes_tratados (
     numero              text PRIMARY KEY,
@@ -14,6 +20,7 @@ CREATE TABLE IF NOT EXISTS silver.incidentes_tratados (
     subcategoria        text NOT NULL DEFAULT 'Não informado',
     grupo_designado     text NOT NULL,
     item_configuracao   text,
+    descricao_resumida  text,
     codigo_fechamento   text NOT NULL DEFAULT 'Não informado',
     aberto              timestamp without time zone NOT NULL,
     resolvido           timestamp without time zone,

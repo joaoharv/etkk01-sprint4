@@ -1,0 +1,42 @@
+{
+  "modelo": "ridge_d7",
+  "versao": "v1",
+  "tipo": "regressao",
+  "target": "volume_total(t+7)",
+  "features": [
+    "lag_1",
+    "lag_2",
+    "lag_3",
+    "lag_7",
+    "lag_14",
+    "lag_21",
+    "lag_28",
+    "periodo_pos_set_2025"
+  ],
+  "hiperparametros": {
+    "alpha": 0.001,
+    "random_state": 42
+  },
+  "periodo_treino": {
+    "inicio": "2025-01-29",
+    "fim": "2025-11-30"
+  },
+  "metricas_val": {
+    "MAE": 105.154,
+    "RMSE": 131.14,
+    "sMAPE_%": 14.237,
+    "R2": -0.142,
+    "n": 30
+  },
+  "metricas_test": {
+    "MAE": 144.507,
+    "RMSE": 203.408,
+    "sMAPE_%": 15.958,
+    "R2": -0.634,
+    "n": 24
+  },
+  "sklearn_version": "1.9.1",
+  "python_version": "3.11.9",
+  "treinado_em": "2026-09-13T18:16:23",
+  "nota": "metricas_val/metricas_test vem de um Ridge treinado SO em TRAIN (jan-out/2025) -- nunca viu VAL/TEST. E' a mesma avaliacao do notebook (Secoes 15-18), reproduzida aqui. O model.pkl persistido e' o modelo de PRODUCAO, retreinado em TRAIN+VAL (Secao 21 do notebook) -- por isso nao existe uma metrica de VAL 'do artefato persistido': o VAL ja fez parte do treino dele, medir nele seria in-sample."
+}

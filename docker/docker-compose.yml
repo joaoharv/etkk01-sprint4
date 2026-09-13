@@ -33,6 +33,7 @@ x-airflow-common: &airflow-common
     - ../config:/opt/airflow/project/config
     - ../tests:/opt/airflow/project/tests
     - ../data:/opt/airflow/project/data
+    - ../models:/opt/airflow/project/models
     - airflow-logs:/opt/airflow/logs
   depends_on:
     postgres:
