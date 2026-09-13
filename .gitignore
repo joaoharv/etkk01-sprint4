@@ -32,3 +32,6 @@ Thumbs.db
 *.log
 output/
 docs/
+
+
+.claude/

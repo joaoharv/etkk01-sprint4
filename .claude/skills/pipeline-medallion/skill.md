@@ -220,8 +220,23 @@ Convenções (o template `dags/dag_dominio_detalhe.py` demonstra todas):
   (nunca o genérico `'airflow'`).
 - `catchup=False` e `max_active_runs=1` — dois runs simultâneos do mesmo domínio
   disputam DELETE/INSERT nas mesmas tabelas.
-- Alerta de falha com destinatários via `os.getenv('ALERT_EMAILS', ...)` — nunca
-  e-mail pessoal hardcoded (o CI aponta).
+- Alerta de falha com o endereço da área **somado** aos destinatários —
+  `ALERT_EMAILS` acrescenta, nunca substitui (o CI aponta as duas violações:
+  e-mail pessoal hardcoded e endereço da área só como fallback):
+
+  ```python
+  DESTINATARIO_GARANTIDO = 'suporte.dados@petrobahia.com.br'
+
+  ALERT_EMAILS = sorted({
+      *(email.strip() for email in os.getenv('ALERT_EMAILS', '').split(',') if email.strip()),
+      DESTINATARIO_GARANTIDO,
+  })
+  ```
+
+  Com o endereço da área no fallback do `getenv`, definir `ALERT_EMAILS` com um
+  endereço pessoal tira a área do alerta sem erro e sem aviso — e, como a
+  variável é global ao ambiente, o ajuste feito para um pipeline muda o
+  destinatário de todos.
 - Encadeamento sequencial Bronze → Silver → Gold; nunca paralelize tasks do
   mesmo domínio.
 - Compatível com o Airflow 2 de produção; os deltas da futura migração para o
