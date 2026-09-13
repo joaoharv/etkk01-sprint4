@@ -1,4 +1,4 @@
-# sprint4-incidentes-ti
+# MLOps PRISMA
 
 Pipeline de dados de **incidentes de TI** em arquitetura **Medallion**, rodando
 inteiramente em **Docker Compose**:
