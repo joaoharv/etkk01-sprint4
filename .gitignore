@@ -32,4 +32,6 @@ Thumbs.db
 *.log
 output/
 docs/
-.claude/skills/
+
+# ----- Claude Code (skills locais, nao fazem parte do produto) -----
+/.claude/skills/
