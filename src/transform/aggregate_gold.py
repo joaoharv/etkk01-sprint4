@@ -25,11 +25,36 @@ def _por_dia(df: pd.DataFrame, dimensao: str | None = None) -> pd.DataFrame:
 def _kpi_resumo(df: pd.DataFrame) -> pd.DataFrame:
     dias = pd.DataFrame({"data_abertura": sorted(df["data_abertura"].unique())})
 
+    # duracao_media_segundos: KPI OFICIAL. Formula inalterada -- nao mexer.
+    # Qualquer metrica robusta/analitica entra como coluna ADICIONAL abaixo,
+    # nunca em substituicao a esta.
     duracao = (
         df.loc[df["duracao_valida"]]
         .groupby("data_abertura")["duracao_segundos"].mean()
         .rename("duracao_media_segundos").reset_index()
     )
+
+    # Metricas analiticas/robustas -- mesma populacao do KPI oficial acima
+    # (duracao_valida=True), para permitir comparacao direta dia a dia.
+    # duracao_mediana_segundos: nao e' afetada pela cauda extrema.
+    duracao_valida_df = df.loc[df["duracao_valida"]]
+    duracao_mediana = (
+        duracao_valida_df
+        .groupby("data_abertura")["duracao_segundos"].median()
+        .rename("duracao_mediana_segundos").reset_index()
+    )
+    # duracao_media_aparada_p99_segundos: media convencional (mesma unidade e
+    # leitura do KPI oficial), mas excluindo o 1% superior da distribuicao
+    # (mesmo P99 dinamico usado em duracao_outlier_flag na Silver) -- mostra
+    # quanto da media oficial e' puxado pela cauda, sem apagar a cauda em si
+    # (ela continua intocada em duracao_segundos e no KPI oficial acima).
+    limite_p99 = df["duracao_segundos"].quantile(0.99)
+    duracao_aparada = (
+        duracao_valida_df.loc[duracao_valida_df["duracao_segundos"] <= limite_p99]
+        .groupby("data_abertura")["duracao_segundos"].mean()
+        .rename("duracao_media_aparada_p99_segundos").reset_index()
+    )
+
     resolucao = (
         df.groupby("data_abertura")["foi_resolvido"].mean()
         .rename("taxa_resolucao").reset_index()
@@ -43,6 +68,8 @@ def _kpi_resumo(df: pd.DataFrame) -> pd.DataFrame:
 
     return (
         dias.merge(duracao, on="data_abertura", how="left")
+        .merge(duracao_mediana, on="data_abertura", how="left")
+        .merge(duracao_aparada, on="data_abertura", how="left")
         .merge(resolucao, on="data_abertura", how="left")
         .merge(violado, on="data_abertura", how="left")
     )

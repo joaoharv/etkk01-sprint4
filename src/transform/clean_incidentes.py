@@ -21,11 +21,13 @@ COLUNAS_SILVER = [
     "numero", "prioridade", "produto", "categoria", "subcategoria",
     "grupo_designado", "item_configuracao", "descricao_resumida", "codigo_fechamento",
     "aberto", "resolvido", "foi_resolvido", "encerrado",
-    "duracao_segundos", "duracao_valida", "aberto_por", "status",
+    "duracao_segundos", "duracao_valida", "duracao_dias", "duracao_outlier_flag",
+    "aberto_por", "status",
     "entrou_kpi", "kpi_violado", "data_abertura", "ano", "mes", "dia_semana",
 ]
 
 _TOLERANCIA_DURACAO = 1.05  # duracao_segundos pode passar 5% do intervalo aberto->encerrado
+_PERCENTIL_OUTLIER_DURACAO = 0.99  # duracao_outlier_flag: sinalizacao estatistica, nao regra de negocio
 
 
 def _sim_nao(serie: pd.Series) -> pd.Series:
@@ -65,9 +67,32 @@ def clean(df_bronze: pd.DataFrame) -> pd.DataFrame:
         raise ValueError("duracao_segundos com valor nao numerico na origem.")
     df["duracao_segundos"] = duracao.astype("int64")
 
-    # 5. duracao_valida: nao pode passar muito do intervalo aberto->encerrado
+    # 4b. Duracao nunca pode ser negativa -- protecao de regressao (nao ha
+    # nenhum caso na fonte atual; se aparecer, falha alto e claro em vez de
+    # seguir em silencio, mesmo padrao de guarda das checagens acima).
+    if (df["duracao_segundos"] < 0).any():
+        raise ValueError("duracao_segundos negativa encontrada na origem.")
+
+    # 5. duracao_valida: nao pode passar muito do intervalo aberto->encerrado.
+    # Validacao ESTRUTURAL (o dado e' internamente coerente?) -- nao e' analise
+    # estatistica de outlier. Ver duracao_outlier_flag abaixo (conceito distinto,
+    # as duas colunas podem ser True ao mesmo tempo).
     intervalo_seg = (df["encerrado"] - df["aberto"]).dt.total_seconds()
     df["duracao_valida"] = df["duracao_segundos"] <= (intervalo_seg * _TOLERANCIA_DURACAO)
+
+    # 5b. duracao_dias: mesma informacao de duracao_segundos, em dias, sem
+    # arredondar. duracao_segundos original permanece intocada -- nenhum valor
+    # e' filtrado, clipado ou substituido em nenhum ponto desta funcao.
+    df["duracao_dias"] = df["duracao_segundos"] / 86400.0
+
+    # 5c. duracao_outlier_flag: sinalizacao ESTATISTICA (> P99 calculado
+    # dinamicamente sobre o lote atual -- nunca um numero fixo hardcoded).
+    # Significa apenas "esta no extremo superior da distribuicao observada
+    # nesta execucao"; NAO significa erro, NAO e' uma classificacao de negocio
+    # e NAO deve remover/alterar nenhuma linha. Conceito ortogonal a
+    # duracao_valida (ver 5. acima).
+    limite_outlier = df["duracao_segundos"].quantile(_PERCENTIL_OUTLIER_DURACAO)
+    df["duracao_outlier_flag"] = df["duracao_segundos"] > limite_outlier
 
     # 6. KPI: SIM/NAO -> boolean
     df["entrou_kpi"] = _sim_nao(df["entrou_kpi"])
@@ -93,9 +118,11 @@ def clean(df_bronze: pd.DataFrame) -> pd.DataFrame:
 
     resultado = df[COLUNAS_SILVER].reset_index(drop=True)
     log.info(
-        "Silver preparada: %d linhas | duracao_valida=false: %d | foi_resolvido=true: %d",
+        "Silver preparada: %d linhas | duracao_valida=false: %d | "
+        "duracao_outlier_flag=true: %d | foi_resolvido=true: %d",
         len(resultado),
         int((~resultado["duracao_valida"]).sum()),
+        int(resultado["duracao_outlier_flag"].sum()),
         int(resultado["foi_resolvido"].sum()),
     )
     return resultado

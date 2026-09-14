@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS silver.incidentes_tratados (
     encerrado           timestamp without time zone NOT NULL,
     duracao_segundos    bigint NOT NULL,
     duracao_valida      boolean NOT NULL,
+    duracao_dias            double precision NOT NULL,  -- derivada de duracao_segundos, sem arredondar
+    duracao_outlier_flag    boolean NOT NULL,            -- estatistico (> P99 dinamico); NAO e' erro nem regra de exclusao
     aberto_por          text NOT NULL,
     status              text NOT NULL,
     entrou_kpi          boolean NOT NULL,
@@ -43,3 +45,19 @@ CREATE INDEX IF NOT EXISTS ix_silver_incidentes_data_abertura
 
 CREATE INDEX IF NOT EXISTS ix_silver_incidentes_prioridade
     ON silver.incidentes_tratados (prioridade);
+
+-- Migracao idempotente para bancos ja existentes: create_schema roda este
+-- arquivo a cada execucao da DAG (dags/pipeline_incidentes_ti.py), e
+-- CREATE TABLE IF NOT EXISTS acima e' no-op quando a tabela ja existe.
+-- Sem NOT NULL aqui de proposito: a tabela pode ja ter linhas no momento
+-- deste ALTER; a task seguinte (transform_silver) faz TRUNCATE + INSERT full
+-- load (src/db.py:truncate_insert) e repopula as duas colunas em todas as
+-- linhas na MESMA execucao da DAG -- nao ha janela de dado incompleto.
+-- ATENCAO: nao usar o caractere de porcentagem neste arquivo (nem em
+-- comentario) -- psycopg2/SQLAlchemy o interpretam como placeholder de
+-- parametro em exec_driver_sql() (ver sql/create/04_gold_core.sql).
+ALTER TABLE silver.incidentes_tratados
+    ADD COLUMN IF NOT EXISTS duracao_dias double precision;
+
+ALTER TABLE silver.incidentes_tratados
+    ADD COLUMN IF NOT EXISTS duracao_outlier_flag boolean;

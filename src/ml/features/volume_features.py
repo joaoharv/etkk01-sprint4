@@ -41,6 +41,12 @@ LAG_COLS = [f"lag_{k}" for k in LAGS]
 # Conjunto de features do modelo D+7 vencedor (Secao 16 do notebook): lags completos
 # (E02) + periodo_pos_set_2025 (E08, sob a Estrategia II). Rolling/calendario/
 # operacionais foram testados e descartados -- nao entram aqui.
+# NUNCA adicionar nenhuma coluna derivada de duracao_segundos (duracao_dias,
+# duracao_outlier_flag, etc.): a serie base e' contagem diaria de incidentes
+# (carregar_volume_diario), nao granularidade por incidente, e um agregado de
+# duracao por dia so fica completo depois que os incidentes daquele dia
+# fecham -- risco de leakage temporal indireto (ver auditoria de outliers de
+# duracao, docs/PLANO_TRATAMENTO_OUTLIERS_DURACAO.md).
 FEATURES_D7 = LAG_COLS + ["periodo_pos_set_2025"]
 
 

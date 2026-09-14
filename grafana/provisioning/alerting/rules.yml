@@ -1,0 +1,190 @@
+# Regras de alerta analitico (Plano 2.1, Etapa 15) -- Grafana Alerting nativo,
+# nunca chama a API do Airflow (proibido pelo plano: alertas de negocio ficam
+# inteiramente do lado do Grafana).
+#
+# Padrao "classic condition" (A: SQL bruto -> B: Reduce last -> C: Threshold
+# > 0) para os 3 alertas prioritarios do plano:
+#   1) volume D+1 acima do normal
+#   2) volume D+7 acima do normal
+#   3) erro (Real x Previsto) do D+7 acima do esperado
+#
+# Os dois primeiros comparam a previsao mais recente contra o MESMO baseline
+# (threshold da regra "volume_acima_do_normal" em gold.alertas_thresholds,
+# calculado SO sobre o regime vigente >= 2025-09-01 -- ver
+# src/ml/alertas_threshold.py). O terceiro usa a regra "erro_d7_acima_do_esperado"
+# (2x MAE da avaliacao OOS). Nenhum threshold e' hardcoded aqui: a query SQL
+# sempre le a linha mais recente da tabela de auditoria.
+#
+# Dedup nativa: Grafana so notifica na transicao Normal->Alerting e depois a
+# cada repeat_interval (policies.yml) enquanto o estado continuar Alerting --
+# sem necessidade de nenhuma tabela de controle de envio.
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: alertas_volume_ml
+    folder: "Alertas ML"
+    interval: 5m
+    rules:
+      - uid: alerta_volume_d1_acima_do_normal
+        title: "Volume D+1 acima do normal"
+        condition: C
+        for: 0m
+        noDataState: NoData
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: incidentes_ti
+            model:
+              refId: A
+              format: table
+              intervalMs: 1000
+              maxDataPoints: 100
+              rawSql: |
+                SELECT (p.valor_previsto - t.threshold) AS margem
+                FROM gold.previsoes p
+                CROSS JOIN LATERAL (
+                    SELECT threshold FROM gold.alertas_thresholds
+                    WHERE regra = 'volume_acima_do_normal'
+                    ORDER BY calculado_em DESC LIMIT 1
+                ) t
+                WHERE p.serie = 'total' AND p.horizonte = 'D+1'
+                ORDER BY p.data_alvo DESC
+                LIMIT 1
+          - refId: B
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: "__expr__"
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: "__expr__"
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: {type: gt, params: [0]}
+                  operator: {type: and}
+                  query: {params: [B]}
+                  reducer: {type: last, params: []}
+                  type: query
+        annotations:
+          summary: "Previsao D+1 de volume acima do baseline do regime vigente."
+          description: "Piloto assistido -- nao e' decisao automatica. Verifique gold.previsoes (serie=total, horizonte=D+1) e o threshold vigente em gold.alertas_thresholds (regra=volume_acima_do_normal)."
+        labels:
+          severidade: analitico
+          origem: grafana_alerting
+
+      - uid: alerta_volume_d7_acima_do_normal
+        title: "Volume D+7 acima do normal"
+        condition: C
+        for: 0m
+        noDataState: NoData
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: incidentes_ti
+            model:
+              refId: A
+              format: table
+              intervalMs: 1000
+              maxDataPoints: 100
+              rawSql: |
+                SELECT (p.valor_previsto - t.threshold) AS margem
+                FROM gold.previsoes p
+                CROSS JOIN LATERAL (
+                    SELECT threshold FROM gold.alertas_thresholds
+                    WHERE regra = 'volume_acima_do_normal'
+                    ORDER BY calculado_em DESC LIMIT 1
+                ) t
+                WHERE p.serie = 'total' AND p.horizonte = 'D+7'
+                ORDER BY p.data_alvo DESC
+                LIMIT 1
+          - refId: B
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: "__expr__"
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: "__expr__"
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: {type: gt, params: [0]}
+                  operator: {type: and}
+                  query: {params: [B]}
+                  reducer: {type: last, params: []}
+                  type: query
+        annotations:
+          summary: "Previsao D+7 de volume acima do baseline do regime vigente."
+          description: "Piloto assistido -- nao e' decisao automatica. Verifique gold.previsoes (serie=total, horizonte=D+7) e o threshold vigente em gold.alertas_thresholds (regra=volume_acima_do_normal)."
+        labels:
+          severidade: analitico
+          origem: grafana_alerting
+
+      - uid: alerta_erro_d7_acima_do_esperado
+        title: "Erro D+7 (Real x Previsto) acima do esperado"
+        condition: C
+        for: 0m
+        noDataState: NoData
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: incidentes_ti
+            model:
+              refId: A
+              format: table
+              intervalMs: 1000
+              maxDataPoints: 100
+              rawSql: |
+                SELECT (abs(p.valor_previsto - g.volume_total) - t.threshold) AS margem
+                FROM gold.previsoes p
+                JOIN gold.ml_volume_diario g ON g.data_abertura = p.data_alvo
+                CROSS JOIN LATERAL (
+                    SELECT threshold FROM gold.alertas_thresholds
+                    WHERE regra = 'erro_d7_acima_do_esperado'
+                    ORDER BY calculado_em DESC LIMIT 1
+                ) t
+                WHERE p.serie = 'total' AND p.horizonte = 'D+7'
+                ORDER BY p.data_alvo DESC
+                LIMIT 1
+          - refId: B
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: "__expr__"
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: "__expr__"
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: {type: gt, params: [0]}
+                  operator: {type: and}
+                  query: {params: [B]}
+                  reducer: {type: last, params: []}
+                  type: query
+        annotations:
+          summary: "Erro absoluto (Real x Previsto) do D+7 acima de 2x o MAE da avaliacao OOS."
+          description: "Piloto assistido -- nao e' decisao automatica. Verifique gold.previsoes/gold.ml_volume_diario e o threshold vigente em gold.alertas_thresholds (regra=erro_d7_acima_do_esperado)."
+        labels:
+          severidade: analitico
+          origem: grafana_alerting

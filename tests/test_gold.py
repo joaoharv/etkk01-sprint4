@@ -12,8 +12,9 @@ def test_gold_total_bate_com_silver():
     assert ok, msg
 
 
-def test_gold_tem_as_13_tabelas(scalar):
-    """12 tabelas originais + gold.previsoes_prioridade (Plano 2.1, Etapa 5).
+def test_gold_tem_as_14_tabelas(scalar):
+    """12 tabelas originais + gold.previsoes_prioridade (Etapa 5) +
+    gold.alertas_thresholds (Etapa 15, auditoria de thresholds de alerta).
 
     Conta so BASE TABLE -- information_schema.tables tambem lista VIEWs (ex.:
     gold.ml_volume_diario, Etapa 10), que tem checagem propria abaixo. Contar
@@ -22,7 +23,7 @@ def test_gold_tem_as_13_tabelas(scalar):
     assert scalar(
         "SELECT COUNT(*) FROM information_schema.tables "
         "WHERE table_schema='gold' AND table_type='BASE TABLE'"
-    ) == 13
+    ) == 14
 
 
 def test_gold_tem_a_view_ml_volume_diario(scalar):
@@ -67,6 +68,85 @@ def test_gold_dimensao_soma_o_total_da_silver(scalar, tabela):
     silver = scalar("SELECT COUNT(*) FROM silver.incidentes_tratados")
     soma = scalar(f"SELECT SUM(total_incidentes) FROM gold.{tabela}")
     assert soma == silver, f"{tabela}: soma={soma} != silver={silver}"
+
+
+# --- gold.kpi_resumo: KPI oficial de duracao vs. metricas robustas --------------
+# Ver docs/PLANO_TRATAMENTO_OUTLIERS_DURACAO.md e
+# docs/REVISAO_PLANO_TRATAMENTO_OUTLIERS_DURACAO.md.
+
+
+def test_gold_kpi_resumo_duracao_oficial_e_exatamente_a_formula_original(scalar):
+    """Regressao: duracao_media_segundos e' a media SIMPLES de duracao_segundos
+    (duracao_valida=true) por data_abertura -- exatamente a mesma formula de
+    antes das colunas robustas serem adicionadas. Recalcula direto da Silver
+    (fonte independente de aggregate_gold.py) e compara linha a linha."""
+    divergentes = scalar(
+        """
+        WITH oficial_recalculado AS (
+            SELECT data_abertura, avg(duracao_segundos) AS media
+            FROM silver.incidentes_tratados
+            WHERE duracao_valida
+            GROUP BY data_abertura
+        )
+        SELECT COUNT(*)
+        FROM gold.kpi_resumo k
+        JOIN oficial_recalculado r ON r.data_abertura = k.data_abertura
+        WHERE abs(k.duracao_media_segundos - r.media) > 0.01
+        """
+    )
+    assert divergentes == 0
+
+
+def test_gold_kpi_resumo_mediana_tem_a_mesma_cobertura_de_dias_que_a_oficial(scalar):
+    """duracao_mediana_segundos e' definida sempre que ha pelo menos 1 registro
+    duracao_valida=true no dia -- exatamente a mesma condicao da coluna
+    oficial, entao a cobertura de dias tem que ser identica."""
+    dias_oficial = scalar(
+        "SELECT COUNT(*) FROM gold.kpi_resumo WHERE duracao_media_segundos IS NOT NULL"
+    )
+    dias_mediana = scalar(
+        "SELECT COUNT(*) FROM gold.kpi_resumo WHERE duracao_mediana_segundos IS NOT NULL"
+    )
+    assert dias_mediana == dias_oficial
+
+
+def test_gold_kpi_resumo_media_aparada_so_falta_quando_o_dia_e_100pct_outlier(scalar):
+    """duracao_media_aparada_p99_segundos pode ser NULL num dia que a oficial
+    tem valor -- isso acontece quando TODOS os incidentes validos do dia estao
+    acima do P99 global (dia inteiro composto so por outliers estatisticos,
+    concentrado no backlog de 2023/2024 -- ver auditoria de outliers de
+    duracao). Confirma que todo gap e' exatamente esse caso, nunca um bug
+    silencioso de agregacao."""
+    gaps_nao_explicados = scalar(
+        """
+        SELECT COUNT(*) FROM gold.kpi_resumo k
+        WHERE k.duracao_media_segundos IS NOT NULL
+          AND k.duracao_media_aparada_p99_segundos IS NULL
+          AND EXISTS (
+              SELECT 1 FROM silver.incidentes_tratados s
+              WHERE s.data_abertura = k.data_abertura
+                AND s.duracao_valida
+                AND NOT s.duracao_outlier_flag
+          )
+        """
+    )
+    assert gaps_nao_explicados == 0
+
+
+def test_gold_kpi_resumo_mediana_global_nao_maior_que_media_oficial_global(scalar):
+    """Propriedade estatistica esperada de uma distribuicao com cauda longa a
+    direita: mediana <= media no AGREGADO do periodo inteiro. Por dia (n
+    pequeno, sobretudo em 2023/2024) essa relacao pode inverter por acaso
+    amostral -- por isso a checagem e' feita no nivel populacional, contra a
+    Silver diretamente, e nao dia a dia contra gold.kpi_resumo."""
+    media_global = scalar(
+        "SELECT avg(duracao_segundos) FROM silver.incidentes_tratados WHERE duracao_valida"
+    )
+    mediana_global = scalar(
+        "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY duracao_segundos) "
+        "FROM silver.incidentes_tratados WHERE duracao_valida"
+    )
+    assert float(mediana_global) <= float(media_global)
 
 
 # --- gold.previsoes: contrato do Plano 2.1 (Etapa 5) -----------------------------

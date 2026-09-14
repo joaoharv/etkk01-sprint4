@@ -29,6 +29,18 @@ def _serie_sintetica(n_dias=40, inicio="2025-01-01"):
     return pd.Series(range(n_dias), index=idx, dtype="float64", name="volume_total")
 
 
+_COLUNAS_DURACAO_PROIBIDAS = {
+    "duracao_segundos", "duracao_dias", "duracao_horas", "duracao_outlier_flag",
+    "duracao_faixa_percentil", "duracao_classificacao", "duracao_valida",
+}
+
+
+def test_features_volume_nao_inclui_colunas_de_duracao():
+    """Nenhuma coluna de duracao (oficial ou derivada da auditoria de outliers)
+    pode entrar como feature do modelo de volume D+7 (docs/PLANO_TRATAMENTO_OUTLIERS_DURACAO.md)."""
+    assert _COLUNAS_DURACAO_PROIBIDAS.isdisjoint(FEATURES_D7)
+
+
 # --- build_features_volume: warmup, leakage, colunas -----------------------------
 
 def test_build_features_descarta_exatamente_os_28_dias_de_warmup():

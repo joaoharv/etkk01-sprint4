@@ -42,6 +42,11 @@ MES_VAL = "2025-11"
 MES_TEST = "2025-12"
 
 # Features do pipeline vencedor (E03) -- ver docstring do modulo.
+# NUNCA adicionar duracao_segundos/duracao_dias/duracao_outlier_flag (ou
+# qualquer classificacao derivada de duracao) aqui: sao pos-desfecho, so
+# existem depois de Resolvido/Encerrado, que nao estao disponiveis no momento
+# em que a Prioridade precisa ser prevista -- leakage direto (ver auditoria de
+# outliers de duracao, docs/PLANO_TRATAMENTO_OUTLIERS_DURACAO.md).
 FEATURES_PRIORIDADE = ["descricao_resumida", "produto_prep"]
 
 _PRODUTO_DESCONHECIDO = "Desconhecido"

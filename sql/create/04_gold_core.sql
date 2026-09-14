@@ -28,11 +28,22 @@ CREATE TABLE IF NOT EXISTS gold.incidentes_diario_aberto_por (
 );
 
 CREATE TABLE IF NOT EXISTS gold.kpi_resumo (
-    data_abertura           date PRIMARY KEY,
-    duracao_media_segundos  numeric,          -- media apenas de duracao_valida = true
-    taxa_resolucao          numeric,          -- fracao 0..1
-    taxa_kpi_violado        numeric           -- fracao 0..1, sobre os que entraram em KPI
+    data_abertura                       date PRIMARY KEY,
+    duracao_media_segundos              numeric,  -- KPI OFICIAL: media apenas de duracao_valida = true. NAO ALTERAR a formula.
+    duracao_mediana_segundos            numeric,  -- analitico/robusto: mediana, mesma populacao do KPI oficial
+    duracao_media_aparada_p99_segundos  numeric,  -- analitico/robusto: media excluindo o topo 1 por cento (mesmo P99 da Silver)
+    taxa_resolucao                      numeric,  -- fracao 0..1
+    taxa_kpi_violado                    numeric   -- fracao 0..1, sobre os que entraram em KPI
 );
+
+-- Migracao idempotente para bancos ja existentes (mesmo raciocinio de
+-- sql/create/03_silver.sql): create_schema roda a cada execucao da DAG, e
+-- transform_gold faz TRUNCATE + INSERT full load logo em seguida.
+ALTER TABLE gold.kpi_resumo
+    ADD COLUMN IF NOT EXISTS duracao_mediana_segundos numeric;
+
+ALTER TABLE gold.kpi_resumo
+    ADD COLUMN IF NOT EXISTS duracao_media_aparada_p99_segundos numeric;
 
 -- Reservada para o pipeline de ML (forecast de volume D+1/D+7).
 --

@@ -26,7 +26,9 @@ import pendulum
 from airflow.decorators import dag, task
 
 from config.logging import get_logger
+from src.alertas.notificacoes import notificar_falha_operacional
 from src.load.load_previsoes import load_previsoes_volume
+from src.ml.alertas_threshold import calcular_e_registrar_thresholds_volume
 from src.ml.predict_volume import gerar_previsoes_volume
 
 log = get_logger(__name__)
@@ -34,6 +36,9 @@ log = get_logger(__name__)
 _DEFAULT_ARGS = {
     "retries": 1,
     "retry_delay": timedelta(minutes=5),
+    # Alerta operacional por e-mail (Plano 2.1, Etapa 15) -- so na falha
+    # definitiva (todas as tentativas esgotadas), nunca a cada retry.
+    "on_failure_callback": notificar_falha_operacional,
 }
 
 
@@ -52,11 +57,21 @@ def ml_previsao_volume():
     def executar_predict_volume() -> dict:
         previsoes, metricas_oos = gerar_previsoes_volume()
         n = load_previsoes_volume(previsoes)
+        if n == 0:
+            # "Previsoes ausentes" vira falha definitiva da task -- reaproveita
+            # o alerta operacional ja existente (on_failure_callback), sem
+            # precisar de nenhuma tabela/mecanismo novo de deteccao (Etapa 15).
+            raise RuntimeError(
+                "gerar_previsoes_volume() nao produziu nenhuma linha -- "
+                "gold.previsoes ficaria sem previsao nesta execucao."
+            )
         log.info(
             "gold.previsoes: %d linha(s) upsertadas | avaliacao OOS (D+7): %s",
             n, metricas_oos,
         )
-        return {"linhas_gravadas": n, "metricas_oos_d7": metricas_oos}
+        thresholds = calcular_e_registrar_thresholds_volume(metricas_oos)
+        log.info("Thresholds de alerta (Grafana) registrados: %s", thresholds)
+        return {"linhas_gravadas": n, "metricas_oos_d7": metricas_oos, "thresholds": thresholds}
 
     executar_predict_volume()
 

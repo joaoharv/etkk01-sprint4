@@ -82,3 +82,56 @@ def test_silver_descricao_resumida_bate_com_bronze(scalar):
     bronze = scalar("SELECT COUNT(descricao_resumida) FROM bronze.incidentes_raw")
     silver = scalar("SELECT COUNT(descricao_resumida) FROM silver.incidentes_tratados")
     assert silver == bronze, f"silver={silver} != bronze={bronze}"
+
+
+# --- duracao_dias / duracao_outlier_flag (auditoria de outliers de duracao) ------
+# Ver docs/PLANO_TRATAMENTO_OUTLIERS_DURACAO.md e
+# docs/REVISAO_PLANO_TRATAMENTO_OUTLIERS_DURACAO.md.
+
+
+def test_silver_duracao_segundos_nunca_negativa(scalar):
+    """duracao_segundos original permanece intocado -- esta e' so uma protecao
+    de regressao (nenhum caso na fonte atual)."""
+    assert scalar(
+        "SELECT COUNT(*) FROM silver.incidentes_tratados WHERE duracao_segundos < 0"
+    ) == 0
+
+
+def test_silver_duracao_dias_e_derivada_sem_arredondar(scalar):
+    """duracao_dias = duracao_segundos / 86400.0 em TODA linha, sem excecao --
+    tolerancia so para erro de ponto flutuante (numeric vs double precision)."""
+    divergentes = scalar(
+        "SELECT COUNT(*) FROM silver.incidentes_tratados "
+        "WHERE abs(duracao_dias - (duracao_segundos / 86400.0)) > 1e-9"
+    )
+    assert divergentes == 0
+
+
+def test_silver_duracao_outlier_flag_bate_com_p99(scalar):
+    """duracao_outlier_flag = (duracao_segundos > P99 do lote inteiro), P99
+    calculado dinamicamente -- nunca um numero fixo. Recalcula o P99 direto no
+    banco e confere que a flag bate exatamente com esse limite recem-calculado."""
+    p99 = scalar(
+        "SELECT percentile_cont(0.99) WITHIN GROUP (ORDER BY duracao_segundos) "
+        "FROM silver.incidentes_tratados"
+    )
+    divergentes = scalar(
+        "SELECT COUNT(*) FROM silver.incidentes_tratados "
+        f"WHERE duracao_outlier_flag != (duracao_segundos > {p99})"
+    )
+    assert divergentes == 0
+
+
+def test_silver_duracao_valida_e_outlier_flag_sao_conceitos_independentes(scalar):
+    """duracao_valida (sanidade estrutural) e duracao_outlier_flag (estatistico)
+    nao podem ser a mesma coisa: deve existir pelo menos um registro onde as
+    duas sao True ao mesmo tempo (outlier estatistico que e' estruturalmente
+    valido -- o caso normal e esperado para a cauda longa de duracao)."""
+    ambas_true = scalar(
+        "SELECT COUNT(*) FROM silver.incidentes_tratados "
+        "WHERE duracao_valida AND duracao_outlier_flag"
+    )
+    assert ambas_true > 0, (
+        "Se nenhum registro tem as duas flags True ao mesmo tempo, "
+        "duracao_outlier_flag pode estar sendo confundida com duracao_valida."
+    )

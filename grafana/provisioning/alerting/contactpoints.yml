@@ -1,0 +1,15 @@
+# Contact point do Grafana Alerting (Plano 2.1, Etapa 15) -- e-mail via
+# Mailpit local (SMTP sem autenticacao, configurado em GF_SMTP_* no
+# docker-compose.yml). Nenhum destinatario real, nenhuma credencial.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: mailpit
+    receivers:
+      - uid: mailpit_email
+        type: email
+        settings:
+          addresses: alertas-analiticos@sprint4.local
+          singleEmail: true
+        disableResolveMessage: false

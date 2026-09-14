@@ -17,6 +17,28 @@ from src.ml.features.prioridade_features import (
 )
 
 
+_COLUNAS_DURACAO_PROIBIDAS = {
+    "duracao_segundos", "duracao_dias", "duracao_horas", "duracao_outlier_flag",
+    "duracao_faixa_percentil", "duracao_classificacao", "duracao_valida",
+}
+
+
+def test_features_prioridade_nao_inclui_colunas_de_duracao():
+    """Nenhuma coluna de duracao (oficial ou derivada da auditoria de outliers)
+    pode entrar como feature: Duracao so existe apos Resolvido/Encerrado, que
+    nao estao disponiveis no momento em que a Prioridade e' prevista -- leakage
+    direto (docs/PLANO_TRATAMENTO_OUTLIERS_DURACAO.md)."""
+    assert _COLUNAS_DURACAO_PROIBIDAS.isdisjoint(FEATURES_PRIORIDADE)
+
+
+def test_populacao_prioridade_nao_seleciona_colunas_de_duracao():
+    """A query de populacao (carregar_populacao_prioridade) nao pode nem
+    selecionar duracao do banco -- reforco de que a barreira e' estrutural,
+    nao apenas uma lista de features."""
+    populacao = carregar_populacao_prioridade()
+    assert _COLUNAS_DURACAO_PROIBIDAS.isdisjoint(populacao.columns)
+
+
 def test_populacao_reproduz_o_notebook():
     """Notebook (celula 25, saida real): 93.403 registros."""
     populacao = carregar_populacao_prioridade()

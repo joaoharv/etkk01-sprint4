@@ -14,6 +14,7 @@ import pendulum
 from airflow.decorators import dag, task
 
 from config.logging import get_logger
+from src.alertas.notificacoes import notificar_falha_operacional
 from src.db import read_table, run_sql_file
 from src.extract.read_source import read_source
 from src.load.load_bronze import load_bronze
@@ -30,6 +31,9 @@ _SQL_CREATE = Path("/opt/airflow/project/sql/create")
 _DEFAULT_ARGS = {
     "retries": 1,
     "retry_delay": timedelta(minutes=5),
+    # Alerta operacional por e-mail (Plano 2.1, Etapa 15) -- so na falha
+    # definitiva (todas as tentativas esgotadas), nunca a cada retry.
+    "on_failure_callback": notificar_falha_operacional,
 }
 
 

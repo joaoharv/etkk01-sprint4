@@ -610,6 +610,358 @@
           }
         }
       ]
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Duração — impacto da cauda extrema (KPI oficial vs. métricas robustas)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Duração de resolução: oficial (média) vs. robusta (mediana / média aparada P99)",
+      "description": "duracao_media_segundos é o KPI OFICIAL (gold.kpi_resumo), inalterado. As séries robustas usam a mesma população (duracao_valida=true) e existem só para quantificar o efeito da cauda extrema ao lado do oficial — nunca o substituem.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT data_abertura AS time, round(duracao_media_segundos/3600.0,2) AS \"Oficial (média)\", round(duracao_mediana_segundos/3600.0,2) AS \"Robusta (mediana)\", round(duracao_media_aparada_p99_segundos/3600.0,2) AS \"Robusta (média aparada P99)\" FROM gold.kpi_resumo WHERE $__timeFilter(data_abertura) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Oficial (média)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#DF490A"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 3
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "[Diagnóstico] % de incidentes outlier (duração > P99)",
+      "description": "Fonte: silver.incidentes_tratados.duracao_outlier_flag (estatístico, P99 dinâmico — não é erro nem regra de exclusão). Painel de diagnóstico, não é o KPI oficial de negócio.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 8,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT round(100.0 * avg(duracao_outlier_flag::int), 2) AS pct FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B8C0C8"
+          },
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#B8C0C8",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "[Diagnóstico] Incidentes outlier (duração > P99) no período",
+      "description": "Contagem absoluta, mesma fonte e semântica do painel de %.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 31,
+        "w": 8,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT count(*) FILTER (WHERE duracao_outlier_flag) AS n FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B8C0C8"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#B8C0C8",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "[Diagnóstico] Duração máxima observada (dias)",
+      "description": "Maior valor de duracao_dias no período — a cauda extrema nunca é removida nem clipada; este painel só a torna visível.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 31,
+        "w": 8,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT round(max(duracao_dias)::numeric, 1) AS max_dias FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B8C0C8"
+          },
+          "unit": "d",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#B8C0C8",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "[Diagnóstico] Outliers de duração por dia de abertura (> P99)",
+      "description": "Fonte: silver.incidentes_tratados. Não substitui nenhum painel de BI existente — é uma visão analítica complementar.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 37,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT data_abertura AS time, count(*) FILTER (WHERE duracao_outlier_flag) AS \"Outliers/dia\" FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 40,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B8C0C8"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
     }
   ]
 }

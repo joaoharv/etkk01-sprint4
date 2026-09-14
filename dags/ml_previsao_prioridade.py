@@ -28,6 +28,7 @@ import pendulum
 from airflow.decorators import dag, task
 
 from config.logging import get_logger
+from src.alertas.notificacoes import notificar_falha_operacional
 from src.load.load_previsoes import load_previsoes_prioridade
 from src.ml.predict_prioridade import gerar_previsoes_prioridade
 
@@ -36,6 +37,9 @@ log = get_logger(__name__)
 _DEFAULT_ARGS = {
     "retries": 1,
     "retry_delay": timedelta(minutes=5),
+    # Alerta operacional por e-mail (Plano 2.1, Etapa 15) -- so na falha
+    # definitiva (todas as tentativas esgotadas), nunca a cada retry.
+    "on_failure_callback": notificar_falha_operacional,
 }
 
 
@@ -54,6 +58,14 @@ def ml_previsao_prioridade():
     def executar_predict_prioridade() -> dict:
         previsoes, metricas_oos = gerar_previsoes_prioridade()
         n = load_previsoes_prioridade(previsoes)
+        if n == 0:
+            # "Previsoes ausentes" vira falha definitiva da task -- reaproveita
+            # o alerta operacional ja existente (on_failure_callback), sem
+            # precisar de nenhuma tabela/mecanismo novo de deteccao (Etapa 15).
+            raise RuntimeError(
+                "gerar_previsoes_prioridade() nao produziu nenhuma linha -- "
+                "gold.previsoes_prioridade ficaria sem previsao nesta execucao."
+            )
         log.info(
             "gold.previsoes_prioridade: %d linha(s) upsertadas | avaliacao OOS: %s",
             n, metricas_oos,

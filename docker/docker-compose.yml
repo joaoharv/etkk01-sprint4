@@ -26,6 +26,16 @@ x-airflow-common: &airflow-common
     POSTGRES_USER: ${POSTGRES_USER}
     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     SOURCE_FILE_PATH: ${SOURCE_FILE_PATH}
+    # SMTP do Airflow (Plano 2.1, Etapa 15) -- aponta para o Mailpit local,
+    # nunca para um servidor de e-mail real. Sem usuario/senha: Mailpit nao
+    # exige autenticacao.
+    AIRFLOW__SMTP__SMTP_HOST: mailpit
+    AIRFLOW__SMTP__SMTP_PORT: "1025"
+    AIRFLOW__SMTP__SMTP_STARTTLS: "False"
+    AIRFLOW__SMTP__SMTP_SSL: "False"
+    AIRFLOW__SMTP__SMTP_MAIL_FROM: ${ALERTA_EMAIL_REMETENTE}
+    # Lida diretamente por src/alertas/notificacoes.py (nao e' uma env do Airflow).
+    ALERTA_EMAIL_DESTINATARIOS: ${ALERTA_EMAIL_DESTINATARIOS}
   volumes:
     - ../dags:/opt/airflow/dags
     - ../src:/opt/airflow/project/src
@@ -38,6 +48,8 @@ x-airflow-common: &airflow-common
   depends_on:
     postgres:
       condition: service_healthy
+    mailpit:
+      condition: service_started
   networks:
     - incidentes_net
 
@@ -129,6 +141,13 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # SMTP do Grafana Alerting (Plano 2.1, Etapa 15) -- Mailpit local, sem
+      # autenticacao e sem TLS (mesmo servico usado pelo Airflow acima).
+      GF_SMTP_ENABLED: "true"
+      GF_SMTP_HOST: mailpit:1025
+      GF_SMTP_FROM_ADDRESS: ${ALERTA_EMAIL_REMETENTE}
+      GF_SMTP_FROM_NAME: "Grafana Alerting - Sprint 4"
+      GF_SMTP_SKIP_VERIFY: "true"
     ports:
       - "${GRAFANA_PORT_HOST:-3000}:3000"
     volumes:
@@ -139,6 +158,21 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      mailpit:
+        condition: service_started
+    networks:
+      - incidentes_net
+
+  # Servidor SMTP local que so CAPTURA e-mails (nunca envia para a internet) --
+  # usado pelo Airflow e pelo Grafana Alerting para o demo da Etapa 15, sem
+  # nenhuma credencial real. UI de inspecao: http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:v1.20.5
+    container_name: incidentes_mailpit
+    ports:
+      - "${MAILPIT_UI_PORT_HOST:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT_HOST:-1025}:1025"
+    restart: unless-stopped
     networks:
       - incidentes_net
 

@@ -1,0 +1,14 @@
+# Politica de notificacao (Plano 2.1, Etapa 15) -- roteia TODOS os alertas
+# para o contact point "mailpit" (sem arvore de rotas por severidade/time,
+# fora do escopo desta etapa). repeat_interval e' a deduplicacao NATIVA do
+# Grafana para um alerta que continua em estado "Alerting": nao reenvia a
+# cada avaliacao, so a cada intervalo -- sem necessidade de tabela custom.
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: mailpit
+    group_by: ["alertname"]
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h
