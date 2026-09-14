@@ -98,8 +98,9 @@
     },
     {
       "id": 32,
-      "type": "barchart",
-      "title": "Top 15 categorias",
+      "type": "table",
+      "title": "Top 15 categorias — Pareto (concentração acumulada)",
+      "description": "Evoluído de barchart simples para tabela de Pareto na evolução BI: mostra % do total e % acumulado por categoria, reaproveitando gold.incidentes_diario_categoria (mesma fonte de antes). Achado relevante: 'Não informado' sozinho concentra ~63% do volume -- não é uma categoria operacional, é uma lacuna de categorização na origem dos dados.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
@@ -120,45 +121,35 @@
           "format": "table",
           "rawQuery": true,
           "editorMode": "code",
-          "rawSql": "SELECT categoria, sum(total_incidentes) AS total FROM gold.incidentes_diario_categoria WHERE $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
+          "rawSql": "WITH base AS (SELECT categoria, sum(total_incidentes) AS total FROM gold.incidentes_diario_categoria WHERE $__timeFilter(data_abertura) GROUP BY 1), ranked AS (SELECT categoria, total, sum(total) OVER (ORDER BY total DESC) AS acumulado, sum(total) OVER () AS total_geral FROM base) SELECT categoria AS \"Categoria\", total AS \"Incidentes\", round(100.0*total/total_geral, 1) AS \"% do total\", round(100.0*acumulado/total_geral, 1) AS \"% acumulado\" FROM ranked ORDER BY total DESC LIMIT 15"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "custom": {
-            "lineWidth": 1,
-            "fillOpacity": 85
-          },
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#DF490A"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#DF490A",
-                "value": null
-              }
-            ]
+            "align": "auto",
+            "filterable": true
           }
         },
         "overrides": []
       },
       "options": {
-        "orientation": "horizontal",
-        "showValue": "auto",
-        "stacking": "none",
-        "xTickLabelRotation": 0,
-        "legend": {
-          "showLegend": false
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
         }
       }
     },
     {
       "id": 33,
-      "type": "piechart",
+      "type": "barchart",
       "title": "Origem: Monitoramento vs Manual",
+      "description": "Substituído de donut para barra na evolução BI: com apenas 2 categorias, a barra permite comparação direta de magnitude sem exigir leitura de ângulo/área.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
@@ -184,8 +175,22 @@
       ],
       "fieldConfig": {
         "defaults": {
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 85
+          },
           "color": {
-            "mode": "palette-classic"
+            "mode": "fixed",
+            "fixedColor": "#DF490A"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": [
@@ -222,20 +227,12 @@
         ]
       },
       "options": {
-        "pieType": "donut",
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "xTickLabelRotation": 0,
         "legend": {
-          "displayMode": "list",
-          "placement": "right"
-        },
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": true
-        },
-        "tooltip": {
-          "mode": "single"
+          "showLegend": false
         }
       }
     },
@@ -343,6 +340,420 @@
         "xTickLabelRotation": -45,
         "legend": {
           "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 36,
+      "type": "row",
+      "title": "Duração — impacto da cauda extrema (KPI oficial vs. métricas robustas)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 37,
+      "type": "timeseries",
+      "title": "Duração de resolução: oficial (média) vs. robusta (mediana / média aparada P99)",
+      "description": "Movido do Dashboard 01 (Etapa A) -- conteúdo de diagnóstico analítico, não pertence à primeira camada executiva. duracao_media_segundos é o KPI OFICIAL (gold.kpi_resumo), inalterado. As séries robustas usam a mesma população (duracao_valida=true) e existem só para quantificar o efeito da cauda extrema ao lado do oficial — nunca o substituem.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT data_abertura AS time, round(duracao_media_segundos/3600.0,2) AS \"Oficial (média)\", round(duracao_mediana_segundos/3600.0,2) AS \"Robusta (mediana)\", round(duracao_media_aparada_p99_segundos/3600.0,2) AS \"Robusta (média aparada P99)\" FROM gold.kpi_resumo WHERE $__timeFilter(data_abertura) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Oficial (média)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#DF490A"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 3
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 38,
+      "type": "stat",
+      "title": "[Diagnóstico] % de incidentes outlier (duração > P99)",
+      "description": "Movido do Dashboard 01 (Etapa A). Fonte: silver.incidentes_tratados.duracao_outlier_flag (estatístico, P99 dinâmico — não é erro nem regra de exclusão). Painel de diagnóstico, não é o KPI oficial de negócio.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 8,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT round(100.0 * avg(duracao_outlier_flag::int), 2) AS pct FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B8C0C8"
+          },
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#B8C0C8",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 39,
+      "type": "stat",
+      "title": "[Diagnóstico] Incidentes outlier (duração > P99) no período",
+      "description": "Movido do Dashboard 01 (Etapa A). Contagem absoluta, mesma fonte e semântica do painel de %.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 38,
+        "w": 8,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT count(*) FILTER (WHERE duracao_outlier_flag) AS n FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B8C0C8"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#B8C0C8",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 40,
+      "type": "stat",
+      "title": "[Diagnóstico] Duração máxima observada (dias)",
+      "description": "Movido do Dashboard 01 (Etapa A). Maior valor de duracao_dias no período — a cauda extrema nunca é removida nem clipada; este painel só a torna visível. Unidade corrigida na evolução BI (unit=none): a unidade 'd' nativa do Grafana reescalava para anos em valores grandes (ex.: \"2.8 years\"), conflitando com o rótulo \"(dias)\" do título -- o valor numérico subjacente (mesma query) não foi alterado.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 38,
+        "w": 8,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT round(max(duracao_dias)::numeric, 1) AS max_dias FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B8C0C8"
+          },
+          "unit": "none",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#B8C0C8",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 41,
+      "type": "timeseries",
+      "title": "[Diagnóstico] Outliers de duração por dia de abertura (> P99)",
+      "description": "Movido do Dashboard 01 (Etapa A). Fonte: silver.incidentes_tratados. Não substitui nenhum painel de BI existente — é uma visão analítica complementar.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 44,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT data_abertura AS time, count(*) FILTER (WHERE duracao_outlier_flag) AS \"Outliers/dia\" FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 40,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B8C0C8"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 42,
+      "type": "row",
+      "title": "Cruzamentos — onde a concentração aparece por grupo",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 53,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 43,
+      "type": "table",
+      "title": "Grupo designado × Prioridade",
+      "description": "Cruzamento simples e rastreável (silver.incidentes_tratados, contagem condicional por prioridade) -- mostra ASSOCIAÇÃO/CONCENTRAÇÃO de prioridade dentro de cada grupo, não causa. P1 e P5 omitidos por serem estatisticamente irrelevantes (1 e 333 registros em todo o histórico). Achado: Team11 concentra quase toda sua carga em P3-Média (~93%), um padrão bem diferente do Team14.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 54,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT grupo_designado AS \"Grupo\", count(*) FILTER (WHERE prioridade = '2 - Alta') AS \"P2 Alta\", count(*) FILTER (WHERE prioridade = '3 - Média') AS \"P3 Média\", count(*) FILTER (WHERE prioridade = '4 - Baixa') AS \"P4 Baixa\", count(*) AS \"Total\" FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 5 DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
         }
       }
     }

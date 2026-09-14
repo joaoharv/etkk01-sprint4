@@ -99,7 +99,8 @@
     {
       "id": 26,
       "type": "barchart",
-      "title": "Incidentes por hora do dia (todo o período)",
+      "title": "Incidentes por hora do dia",
+      "description": "Corrigido na evolução BI: antes agregava gold.incidentes_horario (sem coluna de data, não respeitava o seletor de período). Agora calcula direto de silver.incidentes_tratados com $__timeFilter -- valores idênticos aos anteriores quando o período selecionado é o histórico completo (verificado: soma bate exatamente com a tabela Gold original).",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
@@ -120,7 +121,7 @@
           "format": "table",
           "rawQuery": true,
           "editorMode": "code",
-          "rawSql": "SELECT hora, sum(total_incidentes) AS total FROM gold.incidentes_horario GROUP BY 1 ORDER BY 1"
+          "rawSql": "SELECT extract(hour from aberto)::int AS hora, count(*) AS total FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 1"
         }
       ],
       "fieldConfig": {
@@ -159,6 +160,7 @@
       "id": 27,
       "type": "barchart",
       "title": "Incidentes por dia da semana (0=segunda)",
+      "description": "Corrigido na evolução BI: antes agregava gold.incidentes_horario (sem coluna de data, não respeitava o seletor de período). Agora calcula direto de silver.incidentes_tratados com $__timeFilter -- valores idênticos aos anteriores quando o período selecionado é o histórico completo (verificado: soma bate exatamente com a tabela Gold original).",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
@@ -179,7 +181,7 @@
           "format": "table",
           "rawQuery": true,
           "editorMode": "code",
-          "rawSql": "SELECT dia_semana, sum(total_incidentes) AS total FROM gold.incidentes_horario GROUP BY 1 ORDER BY 1"
+          "rawSql": "SELECT dia_semana, count(*) AS total FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 1"
         }
       ],
       "fieldConfig": {
@@ -218,6 +220,7 @@
       "id": 28,
       "type": "timeseries",
       "title": "Comparação ano a ano",
+      "description": "Adicionado $__timeFilter na evolução BI -- com o período padrão (histórico completo) o resultado é idêntico ao anterior; passa a respeitar o seletor de período quando o usuário restringe a janela de datas.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
@@ -238,7 +241,7 @@
           "format": "time_series",
           "rawQuery": true,
           "editorMode": "code",
-          "rawSql": "SELECT make_date(2000, extract(month from data_abertura)::int, extract(day from data_abertura)::int) AS time, extract(year from data_abertura)::text AS metric, total_incidentes AS value FROM gold.incidentes_diario_total ORDER BY 1"
+          "rawSql": "SELECT make_date(2000, extract(month from data_abertura)::int, extract(day from data_abertura)::int) AS time, extract(year from data_abertura)::text AS metric, total_incidentes AS value FROM gold.incidentes_diario_total WHERE $__timeFilter(data_abertura) ORDER BY 1"
         }
       ],
       "fieldConfig": {
@@ -331,6 +334,7 @@
       "id": 29,
       "type": "timeseries",
       "title": "Tendência com média móvel de 30 dias",
+      "description": "Escala de suavização longa (padrão sazonal/estrutural) -- papel distinto da média móvel de 7 dias do Dashboard 01 (pulso operacional semanal) e da série bruta sem suavização do Dashboard 02 (investigação de um dia específico). As 3 janelas coexistem de propósito, cada uma respondendo uma pergunta diferente.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
@@ -452,6 +456,68 @@
           }
         }
       ]
+    },
+    {
+      "id": 30,
+      "type": "row",
+      "title": "Comparação período a período",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 31,
+      "type": "table",
+      "title": "Variação mês a mês (últimos 2 meses completos)",
+      "description": "Compara os totais dos 2 últimos meses completos do dataset -- não ajustado sazonalmente. Ambos os meses já pertencem ao regime de volume vigente (pós ago/set-2025, ver periodo_pos_set_2025 em src/ml/features/volume_features.py); não é uma comparação através da mudança estrutural de volume documentada no projeto, que tornaria o percentual enganoso se um dos meses fosse de 2023/2024.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 24,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH meses AS (SELECT date_trunc('month', data_abertura)::date AS mes, sum(total_incidentes) AS total FROM gold.incidentes_diario_total GROUP BY 1) SELECT (SELECT mes FROM meses ORDER BY mes DESC LIMIT 1) AS \"Mês atual\", (SELECT total FROM meses ORDER BY mes DESC LIMIT 1) AS \"Incidentes (mês atual)\", (SELECT mes FROM meses ORDER BY mes DESC OFFSET 1 LIMIT 1) AS \"Mês anterior\", (SELECT total FROM meses ORDER BY mes DESC OFFSET 1 LIMIT 1) AS \"Incidentes (mês anterior)\", round(100.0 * ((SELECT total FROM meses ORDER BY mes DESC LIMIT 1) - (SELECT total FROM meses ORDER BY mes DESC OFFSET 1 LIMIT 1)) / NULLIF((SELECT total FROM meses ORDER BY mes DESC OFFSET 1 LIMIT 1), 0), 1) AS \"Variação %\""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
     }
   ]
 }

@@ -27,7 +27,7 @@
     {
       "id": 1,
       "type": "row",
-      "title": "Visão geral do período",
+      "title": "Visão executiva — KPIs principais",
       "collapsed": false,
       "gridPos": {
         "x": 0,
@@ -48,8 +48,8 @@
       "gridPos": {
         "x": 0,
         "y": 1,
-        "w": 5,
-        "h": 4
+        "w": 6,
+        "h": 7
       },
       "targets": [
         {
@@ -99,18 +99,19 @@
       }
     },
     {
-      "id": 3,
+      "id": 16,
       "type": "stat",
-      "title": "Média diária",
+      "title": "Incidentes Críticos (P1)",
+      "description": "Prioridade '1 - Crítica' -- classe extremamente rara nesta base (1 único registro em todo o histórico 2023-2025, ver src/ml/features/volume_features.py:CLASSES_PRIORIDADE_EXCLUIDAS). Sinal estrutural, não estatístico: qualquer valor > 0 já é digno de atenção imediata, independente de frequência histórica.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
-        "x": 5,
+        "x": 6,
         "y": 1,
-        "w": 5,
-        "h": 4
+        "w": 6,
+        "h": 7
       },
       "targets": [
         {
@@ -122,147 +123,25 @@
           "format": "table",
           "rawQuery": true,
           "editorMode": "code",
-          "rawSql": "SELECT round(avg(total_incidentes),1) AS media FROM gold.incidentes_diario_total WHERE $__timeFilter(data_abertura)"
+          "rawSql": "SELECT count(*) AS n FROM silver.incidentes_tratados WHERE prioridade = '1 - Crítica' AND $__timeFilter(data_abertura)"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "custom": {},
           "color": {
-            "mode": "fixed",
-            "fixedColor": "#DF490A"
-          },
-          "decimals": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#DF490A",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "auto",
-        "orientation": "auto"
-      }
-    },
-    {
-      "id": 4,
-      "type": "stat",
-      "title": "Dias com incidente",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "incidentes_ti"
-      },
-      "gridPos": {
-        "x": 10,
-        "y": 1,
-        "w": 5,
-        "h": 4
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "incidentes_ti"
-          },
-          "format": "table",
-          "rawQuery": true,
-          "editorMode": "code",
-          "rawSql": "SELECT count(*) AS dias FROM gold.incidentes_diario_total WHERE $__timeFilter(data_abertura)"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#DF490A"
+            "mode": "thresholds"
           },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "#DF490A",
+                "color": "#B8C0C8",
                 "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "auto",
-        "orientation": "auto"
-      }
-    },
-    {
-      "id": 5,
-      "type": "stat",
-      "title": "Duração média de resolução (h)",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "incidentes_ti"
-      },
-      "gridPos": {
-        "x": 15,
-        "y": 1,
-        "w": 9,
-        "h": 4
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "incidentes_ti"
-          },
-          "format": "table",
-          "rawQuery": true,
-          "editorMode": "code",
-          "rawSql": "SELECT round(avg(duracao_media_segundos)/3600.0,1) AS horas FROM gold.kpi_resumo WHERE $__timeFilter(data_abertura)"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#DF490A"
-          },
-          "unit": "h",
-          "decimals": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
+              },
               {
                 "color": "#DF490A",
-                "value": null
+                "value": 1
               }
             ]
           }
@@ -288,14 +167,15 @@
       "id": 6,
       "type": "gauge",
       "title": "Taxa de resolução",
+      "description": "Semântica RAG: taxa BAIXA de resolução é o problema operacional (vermelho); taxa alta é o resultado esperado (neutro). Sem meta de SLA oficial definida ainda -- thresholds (0,5 / 0,8) são apenas faixas de leitura visual, não uma meta de negócio (ver Etapa C, Dashboard 03).",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
-        "x": 0,
-        "y": 5,
-        "w": 8,
+        "x": 12,
+        "y": 1,
+        "w": 6,
         "h": 7
       },
       "targets": [
@@ -315,8 +195,7 @@
         "defaults": {
           "custom": {},
           "color": {
-            "mode": "fixed",
-            "fixedColor": "#DF490A"
+            "mode": "thresholds"
           },
           "unit": "percentunit",
           "decimals": 1,
@@ -324,7 +203,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "#B8C0C8",
+                "color": "#DF490A",
                 "value": null
               },
               {
@@ -332,7 +211,7 @@
                 "value": 0.5
               },
               {
-                "color": "#DF490A",
+                "color": "#B8C0C8",
                 "value": 0.8
               }
             ]
@@ -358,14 +237,15 @@
       "id": 7,
       "type": "gauge",
       "title": "% incidentes em KPI violado",
+      "description": "Sem meta de SLA oficial definida ainda -- thresholds (0,5 / 0,8) são apenas faixas de leitura visual, não uma meta de negócio (ver Etapa C, Dashboard 03).",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
-        "x": 8,
-        "y": 5,
-        "w": 8,
+        "x": 18,
+        "y": 1,
+        "w": 6,
         "h": 7
       },
       "targets": [
@@ -385,8 +265,7 @@
         "defaults": {
           "custom": {},
           "color": {
-            "mode": "fixed",
-            "fixedColor": "#DF490A"
+            "mode": "thresholds"
           },
           "unit": "percentunit",
           "decimals": 1,
@@ -425,79 +304,32 @@
       }
     },
     {
-      "id": 8,
-      "type": "stat",
-      "title": "Incidentes que entraram em KPI",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "incidentes_ti"
-      },
+      "id": 17,
+      "type": "row",
+      "title": "Tendência — comportamento recente da operação",
+      "collapsed": false,
       "gridPos": {
-        "x": 16,
-        "y": 5,
-        "w": 8,
-        "h": 7
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 1
       },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "incidentes_ti"
-          },
-          "format": "table",
-          "rawQuery": true,
-          "editorMode": "code",
-          "rawSql": "SELECT sum(total_incidentes) AS n FROM gold.incidentes_diario_kpi WHERE entrou_kpi AND $__timeFilter(data_abertura)"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#EB6A7C"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#EB6A7C",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "auto",
-        "orientation": "auto"
-      }
+      "panels": []
     },
     {
       "id": 9,
       "type": "timeseries",
       "title": "Evolução diária de incidentes (com média móvel de 7 dias)",
+      "description": "Papel executivo específico: a média móvel de 7 dias responde \"a operação está subindo ou caindo NESTA semana\" -- uma leitura de curtíssimo prazo que nem o detalhe operacional do Dashboard 02 (sem suavização) nem a visão de 30 dias/sazonalidade do Dashboard 04 entregam da mesma forma.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
         "x": 0,
-        "y": 12,
+        "y": 9,
         "w": 24,
-        "h": 9
+        "h": 8
       },
       "targets": [
         {
@@ -612,32 +444,32 @@
       ]
     },
     {
-      "id": 10,
+      "id": 18,
       "type": "row",
-      "title": "Duração — impacto da cauda extrema (KPI oficial vs. métricas robustas)",
+      "title": "Indicadores de desempenho",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 21,
+        "y": 17,
         "w": 24,
         "h": 1
       },
       "panels": []
     },
     {
-      "id": 11,
-      "type": "timeseries",
-      "title": "Duração de resolução: oficial (média) vs. robusta (mediana / média aparada P99)",
-      "description": "duracao_media_segundos é o KPI OFICIAL (gold.kpi_resumo), inalterado. As séries robustas usam a mesma população (duracao_valida=true) e existem só para quantificar o efeito da cauda extrema ao lado do oficial — nunca o substituem.",
+      "id": 5,
+      "type": "stat",
+      "title": "Duração média de resolução (h) — período completo",
+      "description": "KPI oficial (gold.kpi_resumo), inalterado. Contexto: este número cobre 2023-2025 e é fortemente puxado por um pequeno volume de chamados legados de 2023/2024 com duração muito mais alta -- ver \"ano corrente\" ao lado para o número que reflete a operação atual, e o Dashboard 05 para a análise completa de outliers de duração.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
         "x": 0,
-        "y": 22,
-        "w": 24,
-        "h": 9
+        "y": 18,
+        "w": 8,
+        "h": 5
       },
       "targets": [
         {
@@ -646,25 +478,21 @@
             "type": "grafana-postgresql-datasource",
             "uid": "incidentes_ti"
           },
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
           "editorMode": "code",
-          "rawSql": "SELECT data_abertura AS time, round(duracao_media_segundos/3600.0,2) AS \"Oficial (média)\", round(duracao_mediana_segundos/3600.0,2) AS \"Robusta (mediana)\", round(duracao_media_aparada_p99_segundos/3600.0,2) AS \"Robusta (média aparada P99)\" FROM gold.kpi_resumo WHERE $__timeFilter(data_abertura) ORDER BY 1"
+          "rawSql": "SELECT round(avg(duracao_media_segundos)/3600.0,1) AS horas FROM gold.kpi_resumo WHERE $__timeFilter(data_abertura)"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "h",
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 5,
-            "showPoints": "never",
-            "spanNulls": false
-          },
+          "custom": {},
           "color": {
-            "mode": "palette-classic"
+            "mode": "fixed",
+            "fixedColor": "#DF490A"
           },
+          "unit": "none",
+          "decimals": 1,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -675,87 +503,6 @@
             ]
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Oficial (média)"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#DF490A"
-                }
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 3
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 12,
-      "type": "stat",
-      "title": "[Diagnóstico] % de incidentes outlier (duração > P99)",
-      "description": "Fonte: silver.incidentes_tratados.duracao_outlier_flag (estatístico, P99 dinâmico — não é erro nem regra de exclusão). Painel de diagnóstico, não é o KPI oficial de negócio.",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "incidentes_ti"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 31,
-        "w": 8,
-        "h": 6
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "incidentes_ti"
-          },
-          "format": "table",
-          "rawQuery": true,
-          "editorMode": "code",
-          "rawSql": "SELECT round(100.0 * avg(duracao_outlier_flag::int), 2) AS pct FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura)"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#B8C0C8"
-          },
-          "unit": "percent",
-          "decimals": 2,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#B8C0C8",
-                "value": null
-              }
-            ]
-          }
-        },
         "overrides": []
       },
       "options": {
@@ -774,19 +521,19 @@
       }
     },
     {
-      "id": 13,
+      "id": 19,
       "type": "stat",
-      "title": "[Diagnóstico] Incidentes outlier (duração > P99) no período",
-      "description": "Contagem absoluta, mesma fonte e semântica do painel de %.",
+      "title": "Duração média de resolução (h) — ano corrente (2025)",
+      "description": "Mesma fórmula oficial (média de duracao_media_segundos por dia, gold.kpi_resumo), restrita a incidentes abertos em 2025 -- ano que concentra a esmagadora maioria do volume (121.781 de 122.543 incidentes). Contexto direto para o número de período completo ao lado: 2023-2024 concentram poucos registros (732 no total) mas com duração média muito mais alta, puxando a média histórica para cima. Não é uma meta -- é o mesmo cálculo oficial, só filtrado.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
         "x": 8,
-        "y": 31,
+        "y": 18,
         "w": 8,
-        "h": 6
+        "h": 5
       },
       "targets": [
         {
@@ -798,7 +545,7 @@
           "format": "table",
           "rawQuery": true,
           "editorMode": "code",
-          "rawSql": "SELECT count(*) FILTER (WHERE duracao_outlier_flag) AS n FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura)"
+          "rawSql": "SELECT round(avg(duracao_media_segundos)/3600.0,1) AS horas FROM gold.kpi_resumo WHERE data_abertura >= '2025-01-01' AND $__timeFilter(data_abertura)"
         }
       ],
       "fieldConfig": {
@@ -808,69 +555,7 @@
             "mode": "fixed",
             "fixedColor": "#B8C0C8"
           },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#B8C0C8",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "textMode": "auto",
-        "orientation": "auto"
-      }
-    },
-    {
-      "id": 14,
-      "type": "stat",
-      "title": "[Diagnóstico] Duração máxima observada (dias)",
-      "description": "Maior valor de duracao_dias no período — a cauda extrema nunca é removida nem clipada; este painel só a torna visível.",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "incidentes_ti"
-      },
-      "gridPos": {
-        "x": 16,
-        "y": 31,
-        "w": 8,
-        "h": 6
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "incidentes_ti"
-          },
-          "format": "table",
-          "rawQuery": true,
-          "editorMode": "code",
-          "rawSql": "SELECT round(max(duracao_dias)::numeric, 1) AS max_dias FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura)"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#B8C0C8"
-          },
-          "unit": "d",
+          "unit": "none",
           "decimals": 1,
           "thresholds": {
             "mode": "absolute",
@@ -900,19 +585,18 @@
       }
     },
     {
-      "id": 15,
-      "type": "timeseries",
-      "title": "[Diagnóstico] Outliers de duração por dia de abertura (> P99)",
-      "description": "Fonte: silver.incidentes_tratados. Não substitui nenhum painel de BI existente — é uma visão analítica complementar.",
+      "id": 8,
+      "type": "stat",
+      "title": "Incidentes que entraram em KPI",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
-        "x": 0,
-        "y": 37,
-        "w": 24,
-        "h": 9
+        "x": 16,
+        "y": 18,
+        "w": 8,
+        "h": 5
       },
       "targets": [
         {
@@ -921,23 +605,154 @@
             "type": "grafana-postgresql-datasource",
             "uid": "incidentes_ti"
           },
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
           "editorMode": "code",
-          "rawSql": "SELECT data_abertura AS time, count(*) FILTER (WHERE duracao_outlier_flag) AS \"Outliers/dia\" FROM silver.incidentes_tratados WHERE $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 1"
+          "rawSql": "SELECT sum(total_incidentes) AS n FROM gold.incidentes_diario_kpi WHERE entrou_kpi AND $__timeFilter(data_abertura)"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "drawStyle": "bars",
-            "fillOpacity": 40,
-            "showPoints": "never",
-            "spanNulls": false
-          },
+          "custom": {},
           "color": {
             "mode": "fixed",
-            "fixedColor": "#B8C0C8"
+            "fixedColor": "#EB6A7C"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#EB6A7C",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 20,
+      "type": "row",
+      "title": "Contexto adicional",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Média diária",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT round(avg(total_incidentes),1) AS media FROM gold.incidentes_diario_total WHERE $__timeFilter(data_abertura)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#DF490A"
+          },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Dias com incidente",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 24,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT count(*) AS dias FROM gold.incidentes_diario_total WHERE $__timeFilter(data_abertura)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#DF490A"
           },
           "thresholds": {
             "mode": "absolute",
@@ -952,15 +767,18 @@
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
       }
     }
   ]

@@ -27,7 +27,7 @@
     {
       "id": 10,
       "type": "row",
-      "title": "Volume e composição",
+      "title": "Incidentes",
       "collapsed": false,
       "gridPos": {
         "x": 0,
@@ -38,9 +38,10 @@
       "panels": []
     },
     {
-      "id": 11,
-      "type": "timeseries",
-      "title": "Incidentes por dia",
+      "id": 36,
+      "type": "stat",
+      "title": "Volume total",
+      "description": "Âncora da composição operacional deste dashboard (por prioridade, status e grupo abaixo) -- diferente do papel do Total no Dashboard 01, que é o KPI de saúde geral da operação.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
@@ -48,8 +49,8 @@
       "gridPos": {
         "x": 0,
         "y": 1,
-        "w": 24,
-        "h": 8
+        "w": 8,
+        "h": 4
       },
       "targets": [
         {
@@ -58,25 +59,142 @@
             "type": "grafana-postgresql-datasource",
             "uid": "incidentes_ti"
           },
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
           "editorMode": "code",
-          "rawSql": "SELECT data_abertura AS time, total_incidentes AS \"Incidentes\" FROM gold.incidentes_diario_total WHERE $__timeFilter(data_abertura) ORDER BY 1"
+          "rawSql": "SELECT sum(total_incidentes) AS total FROM gold.incidentes_diario_total WHERE $__timeFilter(data_abertura)"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            }
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B8C0C8"
           },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#B8C0C8",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 37,
+      "type": "stat",
+      "title": "Incidentes Críticos (P1) — indicador raro",
+      "description": "Prioridade '1 - Crítica': apenas 1 registro em todo o histórico 2023-2025 (0,00% do volume). Mantido por transparência, mas sem poder de sinal operacional isolado -- qualquer valor > 0 já merece checagem manual imediata. Ver 'Alta Prioridade (P2)' ao lado para o indicador de severidade com volume estatisticamente relevante (Etapa B).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT count(*) AS n FROM silver.incidentes_tratados WHERE prioridade = '1 - Crítica' AND $__timeFilter(data_abertura)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#B8C0C8",
+                "value": null
+              },
+              {
+                "color": "#9C3312",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 38,
+      "type": "stat",
+      "title": "Incidentes de Alta Prioridade (P2)",
+      "description": "Maior classe de prioridade com volume estatisticamente relevante (15.649 registros, 12,77% do histórico) -- usado como indicador operacional de severidade porque '1 - Crítica' tem apenas 1 registro em todo o dataset e não sustenta sozinho um KPI de acompanhamento. Não somado com P1 -- indicadores separados e rastreáveis (Etapa B).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT count(*) AS n FROM silver.incidentes_tratados WHERE prioridade = '2 - Alta' AND $__timeFilter(data_abertura)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
           "color": {
             "mode": "fixed",
             "fixedColor": "#DF490A"
@@ -94,15 +212,18 @@
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
       }
     },
     {
@@ -115,9 +236,9 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 9,
+        "y": 5,
         "w": 12,
-        "h": 9
+        "h": 8
       },
       "targets": [
         {
@@ -249,17 +370,221 @@
       }
     },
     {
-      "id": 13,
-      "type": "timeseries",
-      "title": "Team14 vs Outros",
+      "id": 14,
+      "type": "barchart",
+      "title": "Incidentes por status",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
         "x": 12,
-        "y": 9,
+        "y": 5,
         "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT status, sum(total_incidentes) AS total FROM gold.incidentes_diario_status WHERE $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 2 DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 85
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#DF490A"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "showValue": "auto",
+        "stacking": "none",
+        "xTickLabelRotation": -45,
+        "legend": {
+          "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 39,
+      "type": "row",
+      "title": "Comportamento",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Incidentes por dia (detalhe operacional, sem suavização)",
+      "description": "Série diária BRUTA, sem média móvel -- papel distinto do Dashboard 01 (tendência suavizada de 7 dias) e do Dashboard 04 (padrão de 30 dias/sazonalidade): aqui o operador vê o valor exato de um dia específico para investigar um evento pontual, não uma tendência.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT data_abertura AS time, total_incidentes AS \"Incidentes\" FROM gold.incidentes_diario_total WHERE $__timeFilter(data_abertura) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#DF490A"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Dias de pico — composição por prioridade (Top 10)",
+      "description": "Mostra a DISTRIBUIÇÃO/CONCENTRAÇÃO de prioridade nos dias de maior volume -- não indica causa do pico (associação, não causalidade). P1 e P5 omitidos por serem estatisticamente irrelevantes (1 e 333 registros em todo o histórico).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT t.data_abertura AS \"Data\", t.total_incidentes AS \"Incidentes\", COALESCE(SUM(p.total_incidentes) FILTER (WHERE p.prioridade = '2 - Alta'), 0) AS \"P2 Alta\", COALESCE(SUM(p.total_incidentes) FILTER (WHERE p.prioridade = '3 - Média'), 0) AS \"P3 Média\", COALESCE(SUM(p.total_incidentes) FILTER (WHERE p.prioridade = '4 - Baixa'), 0) AS \"P4 Baixa\" FROM gold.incidentes_diario_total t LEFT JOIN gold.incidentes_diario_prioridade p ON p.data_abertura = t.data_abertura WHERE $__timeFilter(t.data_abertura) GROUP BY t.data_abertura, t.total_incidentes ORDER BY t.total_incidentes DESC LIMIT 10"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 40,
+      "type": "row",
+      "title": "Investigação",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Team14 vs Outros",
+      "description": "Recorte de grupo em nível de visão rápida -- para ranking/concentração detalhada por grupo/categoria, ver Dashboard 05 (Análises Operacionais).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 24,
         "h": 9
       },
       "targets": [
@@ -343,113 +668,6 @@
         "tooltip": {
           "mode": "multi",
           "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 14,
-      "type": "barchart",
-      "title": "Incidentes por status",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "incidentes_ti"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 18,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "incidentes_ti"
-          },
-          "format": "table",
-          "rawQuery": true,
-          "editorMode": "code",
-          "rawSql": "SELECT status, sum(total_incidentes) AS total FROM gold.incidentes_diario_status WHERE $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 2 DESC"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "lineWidth": 1,
-            "fillOpacity": 85
-          },
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "#DF490A"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#DF490A",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "orientation": "vertical",
-        "showValue": "auto",
-        "stacking": "none",
-        "xTickLabelRotation": -45,
-        "legend": {
-          "showLegend": false
-        }
-      }
-    },
-    {
-      "id": 15,
-      "type": "table",
-      "title": "Dias de pico (Top 10)",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "incidentes_ti"
-      },
-      "gridPos": {
-        "x": 12,
-        "y": 18,
-        "w": 12,
-        "h": 8
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "incidentes_ti"
-          },
-          "format": "table",
-          "rawQuery": true,
-          "editorMode": "code",
-          "rawSql": "SELECT data_abertura AS \"Data\", total_incidentes AS \"Incidentes\" FROM gold.incidentes_diario_total WHERE $__timeFilter(data_abertura) ORDER BY 2 DESC LIMIT 10"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "filterable": true
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false,
-          "reducer": [
-            "sum"
-          ],
-          "fields": ""
         }
       }
     }

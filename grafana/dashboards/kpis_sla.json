@@ -27,7 +27,7 @@
     {
       "id": 16,
       "type": "row",
-      "title": "Acompanhamento de KPI / SLA",
+      "title": "Qual indicador? — população monitorada",
       "collapsed": false,
       "gridPos": {
         "x": 0,
@@ -40,7 +40,8 @@
     {
       "id": 17,
       "type": "stat",
-      "title": "Incidentes em KPI",
+      "title": "Incidentes monitorados pelo indicador",
+      "description": "entrou_kpi = TRUE: o incidente está no escopo de acompanhamento deste indicador (regra de elegibilidade vem pronta da fonte de dados, não documentada neste projeto). NÃO significa \"dentro do prazo\" -- apenas \"monitorado\". Renomeado na evolução BI para eliminar a ambiguidade com \"violado\".",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
@@ -48,7 +49,7 @@
       "gridPos": {
         "x": 0,
         "y": 1,
-        "w": 6,
+        "w": 12,
         "h": 4
       },
       "targets": [
@@ -69,13 +70,13 @@
           "custom": {},
           "color": {
             "mode": "fixed",
-            "fixedColor": "#DF490A"
+            "fixedColor": "#B8C0C8"
           },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "#DF490A",
+                "color": "#B8C0C8",
                 "value": null
               }
             ]
@@ -101,15 +102,16 @@
     {
       "id": 18,
       "type": "stat",
-      "title": "Incidentes fora de KPI",
+      "title": "Incidentes fora do escopo do indicador",
+      "description": "entrou_kpi = FALSE: fora da população monitorada por este indicador (regra vem da fonte). Não é \"problema\" -- é apenas fora de escopo.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
-        "x": 6,
+        "x": 12,
         "y": 1,
-        "w": 6,
+        "w": 12,
         "h": 4
       },
       "targets": [
@@ -160,17 +162,90 @@
       }
     },
     {
-      "id": 19,
-      "type": "stat",
-      "title": "KPI violado",
+      "id": 41,
+      "type": "row",
+      "title": "Qual resultado observado?",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 22,
+      "type": "barchart",
+      "title": "Resultado dos incidentes monitorados: violado × dentro",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
-        "x": 12,
-        "y": 1,
-        "w": 6,
+        "x": 0,
+        "y": 6,
+        "w": 8,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT CASE WHEN kpi_violado THEN 'Violado' ELSE 'Dentro do indicador' END AS resultado, sum(total_incidentes) AS total FROM gold.incidentes_diario_kpi WHERE entrou_kpi AND $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 2 DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 85
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#DF490A"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "showValue": "auto",
+        "stacking": "none",
+        "xTickLabelRotation": -45,
+        "legend": {
+          "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": "stat",
+      "title": "Incidentes com indicador violado",
+      "description": "kpi_violado = TRUE dentro da população monitorada. Regra de cálculo da violação vem pronta da fonte de dados -- não documentada/recalculável neste projeto.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 6,
+        "w": 8,
         "h": 4
       },
       "targets": [
@@ -223,15 +298,16 @@
     {
       "id": 20,
       "type": "stat",
-      "title": "Taxa média de violação",
+      "title": "Taxa de violação do indicador",
+      "description": "Sem meta contratual oficial definida no projeto para esta taxa (ver docs/REVISAO_PLANO_TRATAMENTO_OUTLIERS_DURACAO.md) -- indicador observado, não uma comparação contra alvo.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
-        "x": 18,
-        "y": 1,
-        "w": 6,
+        "x": 16,
+        "y": 6,
+        "w": 8,
         "h": 4
       },
       "targets": [
@@ -286,15 +362,15 @@
     {
       "id": 21,
       "type": "timeseries",
-      "title": "Taxa de violação de KPI por dia",
+      "title": "Taxa de violação do indicador por dia",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
-        "x": 0,
-        "y": 5,
-        "w": 24,
+        "x": 8,
+        "y": 10,
+        "w": 16,
         "h": 8
       },
       "targets": [
@@ -353,18 +429,32 @@
       }
     },
     {
-      "id": 22,
-      "type": "barchart",
-      "title": "Resultado dos incidentes em KPI",
+      "id": 42,
+      "type": "row",
+      "title": "Duração observada — sem meta contratual definida",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 43,
+      "type": "stat",
+      "title": "Duração mediana observada (h)",
+      "description": "Não existe SLA contratual de tempo documentado no projeto (auditoria em docs/REVISAO_PLANO_TRATAMENTO_OUTLIERS_DURACAO.md:66 -- nenhum documento referencia um SLA de horas). Valor puramente observacional, sem comparação com meta. Para a análise completa de cauda extrema e outliers, ver Dashboard 05.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
         "x": 0,
-        "y": 13,
-        "w": 10,
-        "h": 8
+        "y": 19,
+        "w": 12,
+        "h": 5
       },
       "targets": [
         {
@@ -376,24 +466,23 @@
           "format": "table",
           "rawQuery": true,
           "editorMode": "code",
-          "rawSql": "SELECT CASE WHEN kpi_violado THEN 'Violado' ELSE 'Dentro do KPI' END AS resultado, sum(total_incidentes) AS total FROM gold.incidentes_diario_kpi WHERE entrou_kpi AND $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 2 DESC"
+          "rawSql": "SELECT round(avg(duracao_mediana_segundos)/3600.0,1) AS horas FROM gold.kpi_resumo WHERE $__timeFilter(data_abertura)"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "lineWidth": 1,
-            "fillOpacity": 85
-          },
+          "custom": {},
           "color": {
             "mode": "fixed",
-            "fixedColor": "#DF490A"
+            "fixedColor": "#B8C0C8"
           },
+          "unit": "none",
+          "decimals": 1,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "#DF490A",
+                "color": "#B8C0C8",
                 "value": null
               }
             ]
@@ -402,28 +491,34 @@
         "overrides": []
       },
       "options": {
-        "orientation": "vertical",
-        "showValue": "auto",
-        "stacking": "none",
-        "xTickLabelRotation": -45,
-        "legend": {
-          "showLegend": false
-        }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
       }
     },
     {
-      "id": 23,
-      "type": "table",
-      "title": "Volume por código de fechamento",
+      "id": 44,
+      "type": "stat",
+      "title": "Duração média observada (h)",
+      "description": "KPI oficial (gold.kpi_resumo.duracao_media_segundos), sem alteração de fórmula. Sem meta contratual oficial -- ver painel de mediana ao lado e Dashboard 05 para o efeito da cauda extrema sobre esta média.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
-        "x": 10,
-        "y": 13,
-        "w": 14,
-        "h": 8
+        "x": 12,
+        "y": 19,
+        "w": 12,
+        "h": 5
       },
       "targets": [
         {
@@ -435,28 +530,43 @@
           "format": "table",
           "rawQuery": true,
           "editorMode": "code",
-          "rawSql": "SELECT codigo_fechamento AS \"Código de fechamento\", sum(total_incidentes) AS \"Total\" FROM gold.incidentes_diario_codigo_fechamento WHERE $__timeFilter(data_abertura) GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
+          "rawSql": "SELECT round(avg(duracao_media_segundos)/3600.0,1) AS horas FROM gold.kpi_resumo WHERE $__timeFilter(data_abertura)"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "align": "auto",
-            "filterable": true
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#B8C0C8"
+          },
+          "unit": "none",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#B8C0C8",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": []
       },
       "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false,
-          "reducer": [
-            "sum"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
           ],
-          "fields": ""
-        }
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
       }
     }
   ]

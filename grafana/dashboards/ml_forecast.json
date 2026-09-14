@@ -28,7 +28,7 @@
     {
       "id": 1,
       "type": "row",
-      "title": "Seção A — Previsão de Volume (D+1 Persistência / D+7 Ridge)",
+      "title": "Visão geral — situação atual",
       "collapsed": false,
       "gridPos": {
         "x": 0,
@@ -41,7 +41,7 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Previsão D+1 (Persistência)",
+      "title": "Previsão de incidentes — D+1 (baseline de persistência)",
       "description": "volume_total(t) copiado para t+1 -- nao e' modelo treinado (Secao 16 do notebook).",
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -104,7 +104,7 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Previsão D+7 (Ridge)",
+      "title": "Previsão de incidentes — D+7 (Ridge v1)",
       "description": "Modelo Ridge (alpha=0.001), features lag_1..lag_28 + periodo_pos_set_2025 -- retreinado em TRAIN+VAL (Secao 21 do notebook).",
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -167,7 +167,7 @@
     {
       "id": 4,
       "type": "table",
-      "title": "Modelo ativo",
+      "title": "Modelo de volume ativo",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
@@ -175,7 +175,7 @@
       "gridPos": {
         "x": 12,
         "y": 1,
-        "w": 12,
+        "w": 6,
         "h": 4
       },
       "targets": [
@@ -213,9 +213,90 @@
       }
     },
     {
+      "id": 14,
+      "type": "table",
+      "title": "Modelo de prioridade ativo",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT modelo_utilizado AS \"Modelo\", versao_modelo AS \"Versão\", MAX(gerado_em) AS \"Gerado em\", COUNT(*) AS \"Incidentes classificados (OOS)\" FROM gold.previsoes_prioridade GROUP BY modelo_utilizado, versao_modelo"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 21,
+      "type": "text",
+      "title": "Status geral",
+      "datasource": null,
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 3
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**Volume:** previsão D+1 (baseline de persistência) e D+7 (Ridge v1) ativas, atualizadas a cada execução do pipeline de ML — ver erro/desempenho na seção abaixo. **Prioridade:** piloto assistido de triagem (LinearSVC) — **nunca decisão automática**. Antes de qualquer decisão operacional, consulte as métricas de erro e desempenho e a seção de Interpretação / Risco / Ação ao final deste dashboard."
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 18,
+      "type": "row",
+      "title": "Volume — Real × Previsto",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
       "id": 5,
       "type": "table",
-      "title": "Real × Previsto (histórico avaliado)",
+      "title": "Real × Previsto (histórico avaliado) — D+1 e D+7",
       "description": "LEFT JOIN por data_alvo -- previsao futura sem valor real ainda aparece como 'aguardando real', nunca some da tabela.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -223,8 +304,8 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 5,
-        "w": 16,
+        "y": 9,
+        "w": 24,
         "h": 9
       },
       "targets": [
@@ -307,6 +388,19 @@
       }
     },
     {
+      "id": 19,
+      "type": "row",
+      "title": "Erro / desempenho do modelo de volume",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
       "id": 6,
       "type": "table",
       "title": "MAE / RMSE por horizonte",
@@ -316,8 +410,8 @@
         "uid": "incidentes_ti"
       },
       "gridPos": {
-        "x": 16,
-        "y": 5,
+        "x": 0,
+        "y": 19,
         "w": 8,
         "h": 9
       },
@@ -341,7 +435,32 @@
             "filterable": false
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "MAE"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "RMSE"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "showHeader": true,
@@ -359,15 +478,16 @@
       "id": 7,
       "type": "timeseries",
       "title": "D+7 — Real × Previsto ao longo do tempo",
+      "description": "Comparação visual que explica o MAE/RMSE ao lado: quanto mais próximas as duas linhas, menor o erro do modelo.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
-        "x": 0,
-        "y": 14,
-        "w": 24,
-        "h": 8
+        "x": 8,
+        "y": 19,
+        "w": 16,
+        "h": 9
       },
       "targets": [
         {
@@ -464,11 +584,11 @@
     {
       "id": 8,
       "type": "row",
-      "title": "Seção B — Classificação de Prioridade (Piloto Assistido)",
+      "title": "Prioridade — classificação (piloto assistido)",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 22,
+        "y": 28,
         "w": 24,
         "h": 1
       },
@@ -481,7 +601,7 @@
       "datasource": null,
       "gridPos": {
         "x": 0,
-        "y": 23,
+        "y": 29,
         "w": 24,
         "h": 3
       },
@@ -505,7 +625,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 26,
+        "y": 32,
         "w": 6,
         "h": 4
       },
@@ -561,13 +681,14 @@
       "id": 11,
       "type": "stat",
       "title": "Recall P2 (2 - Alta)",
+      "description": "Cor por faixa técnica de leitura (<0,6 atenção / 0,6-0,85 moderado / ≥0,85 alto) -- NÃO é meta de negócio, apenas referência visual para comparar as 3 classes rapidamente (ver P3 ao lado, bem mais baixo).",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
         "x": 6,
-        "y": 26,
+        "y": 32,
         "w": 6,
         "h": 4
       },
@@ -588,16 +709,23 @@
         "defaults": {
           "custom": {},
           "color": {
-            "mode": "fixed",
-            "fixedColor": "#EB6A7C"
+            "mode": "thresholds"
           },
           "decimals": 3,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "#EB6A7C",
+                "color": "#DF490A",
                 "value": null
+              },
+              {
+                "color": "#F59E5C",
+                "value": 0.6
+              },
+              {
+                "color": "#B8C0C8",
+                "value": 0.85
               }
             ]
           }
@@ -623,13 +751,14 @@
       "id": 12,
       "type": "stat",
       "title": "Recall P3 (3 - Média)",
+      "description": "Cor por faixa técnica de leitura (<0,6 atenção / 0,6-0,85 moderado / ≥0,85 alto) -- NÃO é meta de negócio. Este valor (0,466) fica na faixa de atenção -- desempenho bem inferior a P2 (0,847) e P4 (0,991); o próprio notebook classifica este pipeline como Experimental por esse motivo.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
         "x": 12,
-        "y": 26,
+        "y": 32,
         "w": 6,
         "h": 4
       },
@@ -650,16 +779,23 @@
         "defaults": {
           "custom": {},
           "color": {
-            "mode": "fixed",
-            "fixedColor": "#EB6A7C"
+            "mode": "thresholds"
           },
           "decimals": 3,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "#EB6A7C",
+                "color": "#DF490A",
                 "value": null
+              },
+              {
+                "color": "#F59E5C",
+                "value": 0.6
+              },
+              {
+                "color": "#B8C0C8",
+                "value": 0.85
               }
             ]
           }
@@ -685,13 +821,14 @@
       "id": 13,
       "type": "stat",
       "title": "Recall P4 (4 - Baixa)",
+      "description": "Cor por faixa técnica de leitura (<0,6 atenção / 0,6-0,85 moderado / ≥0,85 alto) -- NÃO é meta de negócio, apenas referência visual para comparar as 3 classes rapidamente.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
         "x": 18,
-        "y": 26,
+        "y": 32,
         "w": 6,
         "h": 4
       },
@@ -712,16 +849,23 @@
         "defaults": {
           "custom": {},
           "color": {
-            "mode": "fixed",
-            "fixedColor": "#EB6A7C"
+            "mode": "thresholds"
           },
           "decimals": 3,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "#EB6A7C",
+                "color": "#DF490A",
                 "value": null
+              },
+              {
+                "color": "#F59E5C",
+                "value": 0.6
+              },
+              {
+                "color": "#B8C0C8",
+                "value": 0.85
               }
             ]
           }
@@ -744,54 +888,6 @@
       }
     },
     {
-      "id": 14,
-      "type": "table",
-      "title": "Modelo ativo",
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "incidentes_ti"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 30,
-        "w": 12,
-        "h": 5
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "incidentes_ti"
-          },
-          "format": "table",
-          "rawQuery": true,
-          "editorMode": "code",
-          "rawSql": "SELECT modelo_utilizado AS \"Modelo\", versao_modelo AS \"Versão\", MAX(gerado_em) AS \"Gerado em\", COUNT(*) AS \"Incidentes classificados (OOS)\" FROM gold.previsoes_prioridade GROUP BY modelo_utilizado, versao_modelo"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "filterable": false
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false,
-          "reducer": [
-            "sum"
-          ],
-          "fields": ""
-        }
-      }
-    },
-    {
       "id": 15,
       "type": "table",
       "title": "Score do modelo (não é probabilidade)",
@@ -801,9 +897,9 @@
         "uid": "incidentes_ti"
       },
       "gridPos": {
-        "x": 12,
-        "y": 30,
-        "w": 12,
+        "x": 0,
+        "y": 36,
+        "w": 24,
         "h": 5
       },
       "targets": [
@@ -850,7 +946,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 35,
+        "y": 41,
         "w": 12,
         "h": 9
       },
@@ -933,13 +1029,14 @@
       "id": 17,
       "type": "table",
       "title": "Matriz de confusão (linhas = real, colunas = previsto)",
+      "description": "Atenção especial às células fora da diagonal envolvendo Alta e Média (as duas prioridades mais severas): 673 incidentes reais de Alta foram classificados como Média, e 161 reais de Média foram classificados como Alta -- ver os dois painéis de destaque ao lado. Contagem factual, não uma afirmação de impacto operacional (não demonstrado).",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "incidentes_ti"
       },
       "gridPos": {
         "x": 12,
-        "y": 35,
+        "y": 41,
         "w": 12,
         "h": 9
       },
@@ -975,6 +1072,163 @@
           ],
           "fields": ""
         }
+      }
+    },
+    {
+      "id": 45,
+      "type": "stat",
+      "title": "Erros Alta → Média (real P2, previsto P3)",
+      "description": "Contagem factual de incidentes reais de Alta que o modelo classificou como Média -- a direção de erro entre as duas prioridades mais severas. Não é uma afirmação de impacto operacional (não demonstrado), apenas o destaque pedido na evolução BI para esta célula da matriz de confusão.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 50,
+        "w": 12,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT count(*) AS n FROM gold.previsoes_prioridade WHERE prioridade_real = '2 - Alta' AND prioridade_prevista = '3 - Média'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#DF490A"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#DF490A",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 46,
+      "type": "stat",
+      "title": "Erros Média → Alta (real P3, previsto P2)",
+      "description": "Contagem factual de incidentes reais de Média que o modelo classificou como Alta -- direção oposta à do painel ao lado (aqui o modelo superestima a severidade, ao invés de subestimar).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "incidentes_ti"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 50,
+        "w": 12,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "incidentes_ti"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT count(*) AS n FROM gold.previsoes_prioridade WHERE prioridade_real = '3 - Média' AND prioridade_prevista = '2 - Alta'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#F59E5C"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#F59E5C",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 20,
+      "type": "row",
+      "title": "Interpretação / risco / ação",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 54,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 22,
+      "type": "text",
+      "title": "Como interpretar e limites do modelo",
+      "datasource": null,
+      "gridPos": {
+        "x": 0,
+        "y": 55,
+        "w": 24,
+        "h": 6
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "- **D+1** é uma baseline de persistência (sem parâmetro treinado) — use-a como referência de \"sem modelo\", não como previsão de IA.\n- **D+7 (Ridge v1)** tem erro esperado documentado no painel *MAE / RMSE por horizonte* acima — trate a previsão como uma faixa em torno desse erro, não como valor exato.\n- **Classificação de Prioridade** é um piloto assistido: o Recall varia por classe (ver painéis *Recall P2/P3/P4* acima) — a classe com recall mais baixo exige checagem humana redobrada antes de qualquer ação.\n- O **Score do modelo** é uma margem de decisão do LinearSVC (`decision_function`), não uma probabilidade — nunca comunicar como \"% de confiança\" ou \"certeza do modelo\".\n- Nenhuma previsão deste dashboard deve disparar ação automática sem validação humana."
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
       }
     }
   ]
